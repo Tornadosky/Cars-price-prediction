@@ -13,7 +13,7 @@ from sklearn.tree import DecisionTreeRegressor
 from sklearn.preprocessing import LabelEncoder
 from collections import defaultdict
 from PyQt6.QtWidgets import (QMainWindow, QApplication, QWidget, QLabel, QLineEdit,
- QCheckBox, QComboBox, QSlider, QSpinBox, QDockWidget, QListWidget, QVBoxLayout, QHBoxLayout,
+ QCheckBox, QComboBox, QSlider, QSpinBox, QDoubleSpinBox, QDockWidget, QListWidget, QVBoxLayout, QHBoxLayout,
  QTabWidget, QFrame, QPushButton, QCompleter)
 from PyQt6.QtGui import QIcon, QAction, QPixmap
 from PyQt6.QtCore import Qt
@@ -129,24 +129,32 @@ class MainWindow(QMainWindow):
         chart = Canvas(self)
 
         # Auto complete for QLineEdit()
-        manufacturer_names = car_data['make'].unique()
-        completer = QCompleter(manufacturer_names)
+        completer = QCompleter(car_data['make'].unique())
         completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+        # Input field for Manufacturer with auto completion
+        self.inputWid0Tab1 = QLineEdit()
+        self.lblWid0Tab1 = QLabel("Manufacturer")
+        self.inputWid0Tab1.setCompleter(completer)
+        self.lblWid0Tab1.setAlignment(Qt.AlignmentFlag.AlignTop)
 
-        inputWid0Tab1 = QLineEdit()
-        lblWid0Tab1 = QLabel("Manufacturer")
-        inputWid0Tab1.setCompleter(completer)
-        lblWid0Tab1.setAlignment(Qt.AlignmentFlag.AlignTop)
-        # Checkbox for transmission (Auto - 1, Manual - 0)
-        inputWid3Tab1 = QCheckBox("Transmission Auto")
+        # Checkbox for Transmission (Auto - checked, Manual - unchecked)
+        self.inputWid3Tab1 = QCheckBox("Transmission Auto")
 
-        inputWid2Tab1 = QSpinBox()
-        lblWid2Tab1 = QLabel("Condition")
-        lblWid2Tab1.setAlignment(Qt.AlignmentFlag.AlignTop)
+        # Input field for Condition (from 1.0 to 5.0, step = 0.1)
+        self.inputWid2Tab1 = QDoubleSpinBox()
+        self.lblWid2Tab1 = QLabel("Condition")
+        self.inputWid2Tab1.setDecimals(1)
+        self.inputWid2Tab1.setRange(1.0, 5.0)
+        self.inputWid2Tab1.setSingleStep(0.1)
+        self.lblWid2Tab1.setAlignment(Qt.AlignmentFlag.AlignTop)
 
-        inputWid1Tab1 = QSlider(Qt.Orientation.Horizontal)
-        lblWid1Tab1 = QLabel("Odometer")
-        lblWid1Tab1.setAlignment(Qt.AlignmentFlag.AlignTop)
+        # Slider for Odometer (from 0 to max value in dataset)
+        self.inputWid1Tab1 = QSlider(Qt.Orientation.Horizontal)
+        self.lblWid1Tab1 = QLabel("Odometer")
+        self.inputWid1Tab1.setMinimum(0)
+        self.inputWid1Tab1.setMaximum(int(max(car_data['odometer'])))
+        self.inputWid1Tab1.valueChanged.connect(self.updateOdometer)
+        self.lblWid1Tab1.setAlignment(Qt.AlignmentFlag.AlignTop)
         
         #inputLay3Tab1.addWidget(lblWid3Tab1)
 
@@ -158,97 +166,97 @@ class MainWindow(QMainWindow):
         inputLay3Tab2 = QVBoxLayout()'''
         
 
-        tabLay1, tabLay2, tabLay3 = QVBoxLayout(), QVBoxLayout(), QVBoxLayout()
+        self.tabLay1, self.tabLay2, self.tabLay3 = QVBoxLayout(), QVBoxLayout(), QVBoxLayout()
 
-        tabLay1.addWidget(lblWid0Tab1)
-        tabLay1.addWidget(inputWid0Tab1)
+        self.tabLay1.addWidget(self.lblWid0Tab1)
+        self.tabLay1.addWidget(self.inputWid0Tab1)
         
-        tabLay1.addWidget(lblWid1Tab1)
-        tabLay1.addWidget(inputWid1Tab1)
+        self.tabLay1.addWidget(self.lblWid1Tab1)
+        self.tabLay1.addWidget(self.inputWid1Tab1)
         
-        tabLay1.addWidget(lblWid2Tab1)
-        tabLay1.addWidget(inputWid2Tab1)
+        self.tabLay1.addWidget(self.lblWid2Tab1)
+        self.tabLay1.addWidget(self.inputWid2Tab1)
         
-        tabLay1.addWidget(inputWid3Tab1)
+        self.tabLay1.addWidget(self.inputWid3Tab1)
 
-        tabLay1.addStretch()
-
-
-        tab1, tab2, tab3 = QWidget(), QWidget(), QWidget()
-
-        tab1.setLayout(tabLay1)
-        tab2.setLayout(tabLay2)
-        tab3.setLayout(tabLay3)
+        self.tabLay1.addStretch()
 
 
-        tabWidget = QTabWidget()
-        tabWidget.addTab(tab1, 'One')
-        tabWidget.addTab(tab2, 'Two')
-        tabWidget.addTab(tab3, 'Three')
+        self.tab1, self.tab2, self.tab3 = QWidget(), QWidget(), QWidget()
+
+        self.tab1.setLayout(self.tabLay1)
+        self.tab2.setLayout(self.tabLay2)
+        self.tab3.setLayout(self.tabLay3)
 
 
-        innerDockWidget = QWidget()
-
-        outerTabWidLay = QVBoxLayout()
-        outerTabWidLay.addWidget(tabWidget)
-        innerDockWidget.setLayout(outerTabWidLay)
-
-
-        dockWidget = QDockWidget("Quack")
-        dockWidget.setFeatures(QDockWidget.DockWidgetFeature.NoDockWidgetFeatures)
-        dockWidget.setWidget(innerDockWidget)
-        #dockWidget.setStyleSheet("border-left: 1px solid grey; border-right: 1px solid grey;")
+        self.tabWidget = QTabWidget()
+        self.tabWidget.addTab(self.tab1, 'One')
+        self.tabWidget.addTab(self.tab2, 'Two')
+        self.tabWidget.addTab(self.tab3, 'Three')
 
 
-        lbl00 = QLabel('Manufacturer: ')
-        lbl01 = QLabel('Transmission: ')
-        lbl02 = QLabel('Condition: ')
+        self.innerDockWidget = QWidget()
 
-        lbl10 = QLabel('Odometer: ')
-        lbl11 = QLabel('State: ')
-        lbl12 = QLabel('Color: ')
-
-        lbl20 = QLabel('MMR: ')
-        lbl21 = QLabel('Year: ')
-        lbl22 = QLabel('Body: ')
-
-        colLay0 = QVBoxLayout()
-        colLay1 = QVBoxLayout()
-        colLay2 = QVBoxLayout()
-        colLay3 = QVBoxLayout()
-
-        colLay0.addWidget(lbl00)
-        colLay0.addWidget(lbl01)
-        colLay0.addWidget(lbl02)
-
-        colLay1.addWidget(lbl10)
-        colLay1.addWidget(lbl11)
-        colLay1.addWidget(lbl12)
-
-        colLay2.addWidget(lbl20)
-        colLay2.addWidget(lbl21)
-        colLay2.addWidget(lbl22)
-
-        colLay3.addWidget(QPushButton('Predict'))
+        self.outerTabWidLay = QVBoxLayout()
+        self.outerTabWidLay.addWidget(self.tabWidget)
+        self.innerDockWidget.setLayout(self.outerTabWidLay)
 
 
+        self.dockWidget = QDockWidget("Quack")
+        self.dockWidget.setFeatures(QDockWidget.DockWidgetFeature.NoDockWidgetFeatures)
+        self.dockWidget.setWidget(self.innerDockWidget)
+        # self.dockWidget.setStyleSheet("border-left: 1px solid grey; border-right: 1px solid grey;")
 
-        outerLblLay = QHBoxLayout()
-        outerLblLay.addLayout(colLay0)
-        outerLblLay.addLayout(colLay1)
-        outerLblLay.addLayout(colLay2)
-        outerLblLay.addLayout(colLay3)
 
-        centWidget = QWidget()
+        self.lbl00 = QLabel('Manufacturer: ')
+        self.lbl01 = QLabel('Transmission: ')
+        self.lbl02 = QLabel('Condition: ')
 
-        centLay = QVBoxLayout()
-        centLay.addWidget(chart, stretch= 4)
-        centLay.addLayout(outerLblLay, stretch= 1)
-        centWidget.setLayout(centLay)
+        self.lbl10 = QLabel('Odometer: ')
+        self.lbl11 = QLabel('State: ')
+        self.lbl12 = QLabel('Color: ')
+
+        self.lbl20 = QLabel('MMR: ')
+        self.lbl21 = QLabel('Year: ')
+        self.lbl22 = QLabel('Body: ')
+
+        self.colLay0 = QVBoxLayout()
+        self.colLay1 = QVBoxLayout()
+        self.colLay2 = QVBoxLayout()
+        self.colLay3 = QVBoxLayout()
+
+        self.colLay0.addWidget(self.lbl00)
+        self.colLay0.addWidget(self.lbl01)
+        self.colLay0.addWidget(self.lbl02)
+
+        self.colLay1.addWidget(self.lbl10)
+        self.colLay1.addWidget(self.lbl11)
+        self.colLay1.addWidget(self.lbl12)
+
+        self.colLay2.addWidget(self.lbl20)
+        self.colLay2.addWidget(self.lbl21)
+        self.colLay2.addWidget(self.lbl22)
+
+        self.colLay3.addWidget(QPushButton('Predict'))
+
+
+
+        self.outerLblLay = QHBoxLayout()
+        self.outerLblLay.addLayout(self.colLay0)
+        self.outerLblLay.addLayout(self.colLay1)
+        self.outerLblLay.addLayout(self.colLay2)
+        self.outerLblLay.addLayout(self.colLay3)
+
+        self.centWidget = QWidget()
+
+        self.centLay = QVBoxLayout()
+        self.centLay.addWidget(chart, stretch= 4)
+        self.centLay.addLayout(self.outerLblLay, stretch= 1)
+        self.centWidget.setLayout(self.centLay)
         #centWidget.setStyleSheet("border-top: 1px solid grey;") #background-color: white;")
 
-        self.setCentralWidget(centWidget)
-        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, dockWidget)
+        self.setCentralWidget(self.centWidget)
+        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.dockWidget)
 
 
 
@@ -263,6 +271,11 @@ class MainWindow(QMainWindow):
         menubar = self.menuBar()
         fileMenu = menubar.addMenu('&File')
         fileMenu.addAction(exitAct)
+    
+    def updateOdometer(self):
+        val = self.inputWid1Tab1.value()
+        self.lbl10.setText("Odometer: " + str(val))
+
 
 
 def main():
