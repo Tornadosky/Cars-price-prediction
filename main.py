@@ -70,6 +70,7 @@ class MainWindow(QMainWindow):
         # replace transmission with numbers
         self.car_data['transmission'].replace(['manual', 'automatic'],
                                 [0, 1], inplace=True)
+        
         # make every text occurance in lower-case
         for col in self.car_data.columns:
             if type(self.car_data[col][0]) is str:
@@ -129,16 +130,25 @@ class MainWindow(QMainWindow):
         chart = Canvas(self)
 
         # Auto complete for QLineEdit()
-        completer = QCompleter(car_data['make'].unique())
+        self.unique_manuf = car_data['make'].unique()
+        completer = QCompleter(self.unique_manuf)
         completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
         # Input field for Manufacturer with auto completion
         self.inputWid0Tab1 = QLineEdit()
         self.lblWid0Tab1 = QLabel("Manufacturer")
         self.inputWid0Tab1.setCompleter(completer)
+        self.inputWid0Tab1.textChanged.connect(self.updateManuf)
         self.lblWid0Tab1.setAlignment(Qt.AlignmentFlag.AlignTop)
+
+        # Combobox for model depending on manufacturer
+        self.comboBox = QComboBox()
+        self.lblModel = QLabel("Model")
+        self.comboBox.setEnabled(False)
+        self.comboBox.currentTextChanged.connect(self.updateModel)
 
         # Checkbox for Transmission (Auto - checked, Manual - unchecked)
         self.inputWid3Tab1 = QCheckBox("Transmission Auto")
+        self.inputWid3Tab1.stateChanged.connect(self.updateTransmission)
 
         # Input field for Condition (from 1.0 to 5.0, step = 0.1)
         self.inputWid2Tab1 = QDoubleSpinBox()
@@ -146,13 +156,15 @@ class MainWindow(QMainWindow):
         self.inputWid2Tab1.setDecimals(1)
         self.inputWid2Tab1.setRange(1.0, 5.0)
         self.inputWid2Tab1.setSingleStep(0.1)
+        self.inputWid2Tab1.valueChanged.connect(self.updateCondition)
         self.lblWid2Tab1.setAlignment(Qt.AlignmentFlag.AlignTop)
 
         # Slider for Odometer (from 0 to max value in dataset)
+        max_odometer = int(max(car_data['odometer']))
         self.inputWid1Tab1 = QSlider(Qt.Orientation.Horizontal)
         self.lblWid1Tab1 = QLabel("Odometer")
         self.inputWid1Tab1.setMinimum(0)
-        self.inputWid1Tab1.setMaximum(int(max(car_data['odometer'])))
+        self.inputWid1Tab1.setMaximum(max_odometer)
         self.inputWid1Tab1.valueChanged.connect(self.updateOdometer)
         self.lblWid1Tab1.setAlignment(Qt.AlignmentFlag.AlignTop)
         
@@ -179,8 +191,10 @@ class MainWindow(QMainWindow):
         
         self.tabLay1.addWidget(self.inputWid3Tab1)
 
-        self.tabLay1.addStretch()
+        self.tabLay1.addWidget(self.lblModel)
+        self.tabLay1.addWidget(self.comboBox)
 
+        self.tabLay1.addStretch()
 
         self.tab1, self.tab2, self.tab3 = QWidget(), QWidget(), QWidget()
 
@@ -209,14 +223,14 @@ class MainWindow(QMainWindow):
 
 
         self.lbl00 = QLabel('Manufacturer: ')
-        self.lbl01 = QLabel('Transmission: ')
-        self.lbl02 = QLabel('Condition: ')
+        self.lbl01 = QLabel('Transmission: Manual')
+        self.lbl02 = QLabel('Condition: 3.0')
 
-        self.lbl10 = QLabel('Odometer: ')
+        self.lbl10 = QLabel('Odometer: 0')
         self.lbl11 = QLabel('State: ')
         self.lbl12 = QLabel('Color: ')
 
-        self.lbl20 = QLabel('MMR: ')
+        self.lbl20 = QLabel('Model: ')
         self.lbl21 = QLabel('Year: ')
         self.lbl22 = QLabel('Body: ')
 
@@ -275,6 +289,33 @@ class MainWindow(QMainWindow):
     def updateOdometer(self):
         val = self.inputWid1Tab1.value()
         self.lbl10.setText("Odometer: " + str(val))
+    
+    def updateCondition(self):
+        val = round(self.inputWid2Tab1.value(), 1)
+        self.lbl02.setText("Condition: " + str(val))
+    
+    def updateManuf(self):
+        val = self.inputWid0Tab1.text().lower()
+        if val not in self.unique_manuf:
+            val = None
+        if val:
+            self.comboBox.clear()
+            self.comboBox.addItems(self.car_data.loc[self.car_data['make'] == val]['model'].unique())
+            self.comboBox.setEnabled(True)
+            self.lbl00.setText("Manufacturer: " + val.capitalize())
+        else:
+            self.comboBox.setEnabled(False)
+        
+        
+    
+    def updateModel(self):
+        val = self.comboBox.currentText()
+        self.lbl20.setText("Model: " + str(val))
+
+    def updateTransmission(self):
+        val = self.inputWid3Tab1.isChecked()
+        val = "Auto" if val else "Manual"
+        self.lbl01.setText("Transmission: " + val)
 
 
 
