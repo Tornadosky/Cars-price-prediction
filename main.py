@@ -22,9 +22,12 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 
 car_data = []
 predictedPrice = 0
+xAxis = "condition"
 
 class Canvas(FigureCanvas):
     def __init__(self, parent):
+        global xAxis
+
         fig, self.ax = plt.subplots(figsize=(5, 4), dpi=80)
         super().__init__(fig)
         self.setParent(parent)
@@ -37,7 +40,7 @@ class Canvas(FigureCanvas):
         
         self.ax.plot(t, s)
 
-        self.ax.set(xlabel='time (s)', ylabel='voltage (mV)',
+        self.ax.set(xlabel=xAxis, ylabel='voltage (mV)',
                title='About as simple as it gets, folks')
         self.ax.grid()
 
@@ -126,8 +129,7 @@ class MainWindow(QMainWindow):
 
     def initUI(self):
         global car_data
-
-        chart = Canvas(self)
+        global xAxis
 
         # Auto complete for QLineEdit()
         self.unique_manuf = car_data['make'].unique()
@@ -167,6 +169,12 @@ class MainWindow(QMainWindow):
         self.inputWid1Tab1.setMaximum(max_odometer)
         self.inputWid1Tab1.valueChanged.connect(self.updateOdometer)
         self.lblWid1Tab1.setAlignment(Qt.AlignmentFlag.AlignTop)
+
+        # Combobox for choosing x-axis on the plot
+        self.xComboBox = QComboBox()
+        self.lblxComboBox = QLabel("Choose X-axis:")
+        self.xComboBox.addItems(self.car_data.columns)
+        self.xComboBox.currentTextChanged.connect(self.updateX)
         
         #inputLay3Tab1.addWidget(lblWid3Tab1)
 
@@ -193,6 +201,9 @@ class MainWindow(QMainWindow):
 
         self.tabLay1.addWidget(self.lblModel)
         self.tabLay1.addWidget(self.comboBox)
+
+        self.tabLay1.addWidget(self.lblxComboBox)
+        self.tabLay1.addWidget(self.xComboBox)
 
         self.tabLay1.addStretch()
 
@@ -264,6 +275,7 @@ class MainWindow(QMainWindow):
         self.centWidget = QWidget()
 
         self.centLay = QVBoxLayout()
+        chart = Canvas(self)
         self.centLay.addWidget(chart, stretch= 4)
         self.centLay.addLayout(self.outerLblLay, stretch= 1)
         self.centWidget.setLayout(self.centLay)
@@ -293,6 +305,10 @@ class MainWindow(QMainWindow):
     def updateCondition(self):
         val = round(self.inputWid2Tab1.value(), 1)
         self.lbl02.setText("Condition: " + str(val))
+
+    def updateX(self):
+        global xAxis
+        xAxis = self.xComboBox.currentText()
     
     def updateManuf(self):
         val = self.inputWid0Tab1.text().lower()
@@ -306,8 +322,6 @@ class MainWindow(QMainWindow):
         else:
             self.comboBox.setEnabled(False)
         
-        
-    
     def updateModel(self):
         val = self.comboBox.currentText()
         self.lbl20.setText("Model: " + str(val))
