@@ -20,6 +20,10 @@ from PyQt6.QtCore import Qt
 
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 
+car_make, car_model, car_year, car_color, car_interior = 0, 0, 0, 0, 0
+car_odometer, car_body, car_condition, car_transmission, car_state = 0, 0, 0, 0, 0 
+
+
 car_data = []
 predictedPrice = 0
 xAxis = "condition"
@@ -68,7 +72,7 @@ class MainWindow(QMainWindow):
     
         self.car_data = pd.read_csv('car_prices.csv', on_bad_lines='skip')
         self.car_data = self.car_data.dropna(how='any')
-        self.car_data.drop(columns=['vin', 'seller', 'saledate','mmr'], inplace=True)
+        self.car_data.drop(columns=['vin', 'seller', 'saledate','mmr', 'trim'], inplace=True)
 
         # replace transmission with numbers
         self.car_data['transmission'].replace(['manual', 'automatic'],
@@ -92,13 +96,13 @@ class MainWindow(QMainWindow):
 
         # build dictionary function
         cols=np.array(car_data.columns[car_data.dtypes != object])
-        d = defaultdict(LabelEncoder)
+        self.d = defaultdict(LabelEncoder)
 
         # only for categorical columns apply dictionary by calling fit_transform 
-        df_train = df_train.apply(lambda x: d[x.name].fit_transform(x))
+        df_train = df_train.apply(lambda x: self.d[x.name].fit_transform(x))
         df_train[cols] = car_data[cols]
 
-        ftrain = ['year', 'make', 'model', 'trim', 'body', 'transmission', 
+        ftrain = ['year', 'make', 'model', 'body', 'transmission', 
                 'state', 'condition', 'odometer', 'color', 'interior', 'sellingprice']
 
         def define_data():
@@ -120,12 +124,23 @@ class MainWindow(QMainWindow):
         print(self.model.score(X_test, y_test))
 
     def showPrediction(self) :
+        global car_make, car_model, car_year, car_color, car_interior
+        global car_odometer, car_body, car_condition, car_transmission, car_state
         global predictedPrice
+
+
+        le = preprocessing.LabelEncoder()
+
+        car_data = [car_year, car_make, car_model, car_body, car_transmission, 
+                car_state, car_condition, car_odometer, car_color, car_interior]
+        print(car_data)
+
+        model_data = le.fit_transform(car_data)
+
+        print(model_data)
         
-        predictedPrice = round(self.model.predict(___)[0], 2)
-        print(type(predictedPrice))
+        predictedPrice = self.model.predict(model_data.reshape(1, -1))[0]
         print("Predicted car price: %.2f" %predictedPrice)
-        self.labPrediction.setText(f"Predicted car price: {predictedPrice}")
 
     def initUI(self):
         global car_data
@@ -262,7 +277,12 @@ class MainWindow(QMainWindow):
         self.colLay2.addWidget(self.lbl21)
         self.colLay2.addWidget(self.lbl22)
 
-        self.colLay3.addWidget(QPushButton('Predict'))
+        self.btn = QPushButton("Predict")
+        self.btn.setToolTip("Show Prediction")
+        self.btn.clicked.connect(self.showPrediction)
+
+
+        self.colLay3.addWidget(self.btn)
 
 
 
@@ -299,18 +319,21 @@ class MainWindow(QMainWindow):
         fileMenu.addAction(exitAct)
     
     def updateOdometer(self):
-        val = self.inputWid1Tab1.value()
-        self.lbl10.setText("Odometer: " + str(val))
+        global car_odometer
+        car_odometer = self.inputWid1Tab1.value()
+        self.lbl10.setText("Odometer: " + str(car_odometer))
     
     def updateCondition(self):
-        val = round(self.inputWid2Tab1.value(), 1)
-        self.lbl02.setText("Condition: " + str(val))
+        global car_condition
+        car_condition = round(self.inputWid2Tab1.value(), 1)
+        self.lbl02.setText("Condition: " + str(car_condition))
 
     def updateX(self):
         global xAxis
         xAxis = self.xComboBox.currentText()
     
     def updateManuf(self):
+        global car_make
         val = self.inputWid0Tab1.text().lower()
         if val not in self.unique_manuf:
             val = None
@@ -318,23 +341,30 @@ class MainWindow(QMainWindow):
             self.comboBox.clear()
             self.comboBox.addItems(self.car_data.loc[self.car_data['make'] == val]['model'].unique())
             self.comboBox.setEnabled(True)
+            car_make = val
             self.lbl00.setText("Manufacturer: " + val.capitalize())
         else:
             self.comboBox.setEnabled(False)
         
     def updateModel(self):
-        val = self.comboBox.currentText()
-        self.lbl20.setText("Model: " + str(val))
+        global car_model
+        car_model = self.comboBox.currentText()
+        self.lbl20.setText("Model: " + car_model)
 
     def updateTransmission(self):
+        global car_transmission
+
         val = self.inputWid3Tab1.isChecked()
-        val = "Auto" if val else "Manual"
+        if val:
+            val = "Auto"
+            car_transmission = 1
+        else:
+            val = "Manual"
+            car_transmission = 0
         self.lbl01.setText("Transmission: " + val)
 
 
-
 def main():
-
     app = QApplication(sys.argv)
     window = MainWindow()
     sys.exit(app.exec())
