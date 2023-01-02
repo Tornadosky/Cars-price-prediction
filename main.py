@@ -151,39 +151,43 @@ class MainWindow(QMainWindow):
         completer = QCompleter(self.unique_manuf)
         completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
         # Input field for Manufacturer with auto completion
-        self.inputWid0Tab1 = QLineEdit()
-        self.lblWid0Tab1 = QLabel("Manufacturer")
-        self.inputWid0Tab1.setCompleter(completer)
-        self.inputWid0Tab1.textChanged.connect(self.updateManuf)
-        self.lblWid0Tab1.setAlignment(Qt.AlignmentFlag.AlignTop)
+        self.inputMake = QLineEdit()
+        self.tabLblMake = QLabel("Manufacturer")
+        self.inputMake.setCompleter(completer)
+        self.inputMake.textChanged.connect(self.updateMake)
+        #self.tabLblMake.setAlignment(Qt.AlignmentFlag.AlignTop)
 
         # Combobox for model depending on manufacturer
-        self.comboBox = QComboBox()
-        self.lblModel = QLabel("Model")
-        self.comboBox.setEnabled(False)
-        self.comboBox.currentTextChanged.connect(self.updateModel)
+        self.inputModel = QComboBox()
+        self.tabLblModel = QLabel("Model")
+        self.inputModel.setEnabled(False)
+        self.inputModel.currentTextChanged.connect(self.updateModel)
+
+        # Combobox for body 
+        self.inputBody = QComboBox()
+        self.tabLblBody = QLabel("Body")
+        self.inputBody.addItems(self.car_data['body'].unique())
+        self.inputBody.currentTextChanged.connect(self.updateBody)
 
         # Checkbox for Transmission (Auto - checked, Manual - unchecked)
-        self.inputWid3Tab1 = QCheckBox("Transmission Auto")
-        self.inputWid3Tab1.stateChanged.connect(self.updateTransmission)
+        self.inputTransmission = QCheckBox("Transmission Auto")
+        self.inputTransmission.stateChanged.connect(self.updateTransmission)
 
         # Input field for Condition (from 1.0 to 5.0, step = 0.1)
-        self.inputWid2Tab1 = QDoubleSpinBox()
-        self.lblWid2Tab1 = QLabel("Condition")
-        self.inputWid2Tab1.setDecimals(1)
-        self.inputWid2Tab1.setRange(1.0, 5.0)
-        self.inputWid2Tab1.setSingleStep(0.1)
-        self.inputWid2Tab1.valueChanged.connect(self.updateCondition)
-        self.lblWid2Tab1.setAlignment(Qt.AlignmentFlag.AlignTop)
+        self.inputCondition = QDoubleSpinBox()
+        self.tabLblCondition = QLabel("Condition")
+        self.inputCondition.setDecimals(1)
+        self.inputCondition.setRange(1.0, 5.0)
+        self.inputCondition.setSingleStep(0.1)
+        self.inputCondition.valueChanged.connect(self.updateCondition)
 
         # Slider for Odometer (from 0 to max value in dataset)
         max_odometer = int(max(car_data['odometer']))
-        self.inputWid1Tab1 = QSlider(Qt.Orientation.Horizontal)
-        self.lblWid1Tab1 = QLabel("Odometer")
-        self.inputWid1Tab1.setMinimum(0)
-        self.inputWid1Tab1.setMaximum(max_odometer)
-        self.inputWid1Tab1.valueChanged.connect(self.updateOdometer)
-        self.lblWid1Tab1.setAlignment(Qt.AlignmentFlag.AlignTop)
+        self.inputOdometer = QSlider(Qt.Orientation.Horizontal)
+        self.tabLblOdometer = QLabel("Odometer")
+        self.inputOdometer.setMinimum(0)
+        self.inputOdometer.setMaximum(max_odometer)
+        self.inputOdometer.valueChanged.connect(self.updateOdometer)
 
         # Combobox for choosing x-axis on the plot
         self.xComboBox = QComboBox()
@@ -191,7 +195,6 @@ class MainWindow(QMainWindow):
         self.xComboBox.addItems(self.car_data.columns)
         self.xComboBox.currentTextChanged.connect(self.updateX)
         
-        #inputLay3Tab1.addWidget(lblWid3Tab1)
 
 
 
@@ -201,38 +204,45 @@ class MainWindow(QMainWindow):
         inputLay3Tab2 = QVBoxLayout()'''
         
 
-        self.tabLay1, self.tabLay2, self.tabLay3 = QVBoxLayout(), QVBoxLayout(), QVBoxLayout()
+        self.tabLay1, self.tabLay2 = QVBoxLayout(), QVBoxLayout()
 
-        self.tabLay1.addWidget(self.lblWid0Tab1)
-        self.tabLay1.addWidget(self.inputWid0Tab1)
-        
-        self.tabLay1.addWidget(self.lblWid1Tab1)
-        self.tabLay1.addWidget(self.inputWid1Tab1)
-        
-        self.tabLay1.addWidget(self.lblWid2Tab1)
-        self.tabLay1.addWidget(self.inputWid2Tab1)
-        
-        self.tabLay1.addWidget(self.inputWid3Tab1)
+        self.tabLay1.addWidget(self.tabLblMake)
+        self.tabLay1.addWidget(self.inputMake)
+        self.tabLay1.addSpacing(15)
 
-        self.tabLay1.addWidget(self.lblModel)
-        self.tabLay1.addWidget(self.comboBox)
+        self.tabLay1.addWidget(self.tabLblModel)
+        self.tabLay1.addWidget(self.inputModel)
+        self.tabLay1.addSpacing(15)
+
+        self.tabLay1.addWidget(self.tabLblBody)
+        self.tabLay1.addWidget(self.inputBody)
+        self.tabLay1.addSpacing(15)
+        
+        self.tabLay1.addWidget(self.tabLblOdometer)
+        self.tabLay1.addWidget(self.inputOdometer)
+        self.tabLay1.addSpacing(15)
+        
+        '''self.tabLay1.addWidget(self.tabLblCondition)
+        self.tabLay1.addWidget(self.inputCondition)
+        self.tabLay1.addSpacing(15)'''
+        
+        self.tabLay1.addWidget(self.inputTransmission)
+        self.tabLay1.addSpacing(15)
 
         self.tabLay1.addWidget(self.lblxComboBox)
         self.tabLay1.addWidget(self.xComboBox)
 
         self.tabLay1.addStretch()
 
-        self.tab1, self.tab2, self.tab3 = QWidget(), QWidget(), QWidget()
+        self.tab1, self.tab2 = QWidget(), QWidget()
 
         self.tab1.setLayout(self.tabLay1)
         self.tab2.setLayout(self.tabLay2)
-        self.tab3.setLayout(self.tabLay3)
 
 
         self.tabWidget = QTabWidget()
         self.tabWidget.addTab(self.tab1, 'One')
         self.tabWidget.addTab(self.tab2, 'Two')
-        self.tabWidget.addTab(self.tab3, 'Three')
 
 
         self.innerDockWidget = QWidget()
@@ -242,49 +252,60 @@ class MainWindow(QMainWindow):
         self.innerDockWidget.setLayout(self.outerTabWidLay)
 
 
-        self.dockWidget = QDockWidget("Quack")
+        self.dockWidget = QDockWidget("Dock")
         self.dockWidget.setFeatures(QDockWidget.DockWidgetFeature.NoDockWidgetFeatures)
         self.dockWidget.setWidget(self.innerDockWidget)
         # self.dockWidget.setStyleSheet("border-left: 1px solid grey; border-right: 1px solid grey;")
 
 
-        self.lbl00 = QLabel('Manufacturer: ')
-        self.lbl01 = QLabel('Transmission: Manual')
-        self.lbl02 = QLabel('Condition: 3.0')
+        # Information labels 
+        self.lblMake = QLabel('Manufacturer: -')
+        self.lblModel = QLabel('Model: -')
+        self.lblBody = QLabel('Body: -')
 
-        self.lbl10 = QLabel('Odometer: 0')
-        self.lbl11 = QLabel('State: ')
-        self.lbl12 = QLabel('Color: ')
+        self.lblOdometer = QLabel('Odometer: 0')
+        self.lblYear = QLabel('Year: 0')
+        self.lblCondition = QLabel('Condition: 0.0')
 
-        self.lbl20 = QLabel('Model: ')
-        self.lbl21 = QLabel('Year: ')
-        self.lbl22 = QLabel('Body: ')
+        self.lblState = QLabel('State: -')
+        self.lblColor = QLabel('Color: -')
+        self.lblInterior = QLabel('Interior: -')
+        
+        self.lblTransmission = QLabel('Transmission: Manual')
+        
 
         self.colLay0 = QVBoxLayout()
         self.colLay1 = QVBoxLayout()
         self.colLay2 = QVBoxLayout()
         self.colLay3 = QVBoxLayout()
 
-        self.colLay0.addWidget(self.lbl00)
-        self.colLay0.addWidget(self.lbl01)
-        self.colLay0.addWidget(self.lbl02)
+        # 1st column
+        self.colLay0.addWidget(self.lblMake)
+        self.colLay0.addWidget(self.lblModel)
+        self.colLay0.addWidget(self.lblBody)
 
-        self.colLay1.addWidget(self.lbl10)
-        self.colLay1.addWidget(self.lbl11)
-        self.colLay1.addWidget(self.lbl12)
+        # 2nd column
+        self.colLay1.addWidget(self.lblState)
+        self.colLay1.addWidget(self.lblColor)
+        self.colLay1.addWidget(self.lblInterior)
 
-        self.colLay2.addWidget(self.lbl20)
-        self.colLay2.addWidget(self.lbl21)
-        self.colLay2.addWidget(self.lbl22)
+        # 3rd column
+        self.colLay2.addWidget(self.lblOdometer)
+        self.colLay2.addWidget(self.lblYear)
+        self.colLay2.addWidget(self.lblCondition)
 
+        
+        # Predict push-button
         self.btn = QPushButton("Predict")
-        self.btn.setToolTip("Show Prediction")
+        self.btn.setMinimumHeight(self.btn.height() / 10)
         self.btn.clicked.connect(self.showPrediction)
-
-
+        
+        # 4th column
+        self.colLay3.addSpacing(3)
+        self.colLay3.addWidget(self.lblTransmission)
+        self.colLay3.addWidget(QWidget())
         self.colLay3.addWidget(self.btn)
-
-
+        
 
         self.outerLblLay = QHBoxLayout()
         self.outerLblLay.addLayout(self.colLay0)
@@ -304,8 +325,6 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self.centWidget)
         self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.dockWidget)
 
-
-
     
         exitAct = QAction(QIcon('exit.png'), '&Exit', self)
         exitAct.setShortcut('Ctrl+Q')
@@ -320,49 +339,53 @@ class MainWindow(QMainWindow):
     
     def updateOdometer(self):
         global car_odometer
-        car_odometer = self.inputWid1Tab1.value()
-        self.lbl10.setText("Odometer: " + str(car_odometer))
+        car_odometer = self.inputOdometer.value()
+        self.lblOdometer.setText("Odometer: " + str(car_odometer))
     
     def updateCondition(self):
         global car_condition
-        car_condition = round(self.inputWid2Tab1.value(), 1)
-        self.lbl02.setText("Condition: " + str(car_condition))
+        car_condition = round(self.inputCondition.value(), 1)
+        self.lblCondition.setText("Condition: " + str(car_condition))
 
     def updateX(self):
         global xAxis
         xAxis = self.xComboBox.currentText()
     
-    def updateManuf(self):
+    def updateMake(self):
         global car_make
-        val = self.inputWid0Tab1.text().lower()
+        val = self.inputMake.text().lower()
         if val not in self.unique_manuf:
             val = None
         if val:
-            self.comboBox.clear()
-            self.comboBox.addItems(self.car_data.loc[self.car_data['make'] == val]['model'].unique())
-            self.comboBox.setEnabled(True)
+            self.inputModel.clear()
+            self.inputModel.addItems(self.car_data.loc[self.car_data['make'] == val]['model'].unique())
+            self.inputModel.setEnabled(True)
             car_make = val
-            self.lbl00.setText("Manufacturer: " + val.capitalize())
+            self.lblMake.setText("Manufacturer: " + val.capitalize())
         else:
-            self.comboBox.setEnabled(False)
+            self.inputModel.setEnabled(False)
         
     def updateModel(self):
         global car_model
-        car_model = self.comboBox.currentText()
-        self.lbl20.setText("Model: " + car_model)
+        car_model = self.inputModel.currentText()
+        self.lblModel.setText("Model: " + car_model)
 
     def updateTransmission(self):
         global car_transmission
 
-        val = self.inputWid3Tab1.isChecked()
+        val = self.inputTransmission.isChecked()
         if val:
             val = "Auto"
             car_transmission = 1
         else:
             val = "Manual"
             car_transmission = 0
-        self.lbl01.setText("Transmission: " + val)
+        self.lblTransmission.setText("Transmission: " + val)
 
+    def updateBody(self):
+        global car_body
+        car_body = self.inputBody.currentText()
+        self.lblBody.setText("Body: " + car_body)
 
 def main():
     app = QApplication(sys.argv)
