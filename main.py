@@ -12,7 +12,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.preprocessing import LabelEncoder
 from collections import defaultdict
-from PyQt6.QtWidgets import (QMainWindow, QApplication, QWidget, QLabel, QLineEdit,
+from PyQt6.QtWidgets import (QMainWindow, QApplication, QWidget, QLabel, QLineEdit, QSpinBox,
  QCheckBox, QComboBox, QSlider, QSpinBox, QDoubleSpinBox, QDockWidget, QListWidget, QVBoxLayout, QHBoxLayout,
  QTabWidget, QFrame, QPushButton, QCompleter)
 from PyQt6.QtGui import QIcon, QAction, QPixmap
@@ -194,6 +194,33 @@ class MainWindow(QMainWindow):
         self.lblxComboBox = QLabel("Choose X-axis:")
         self.xComboBox.addItems(self.car_data.columns)
         self.xComboBox.currentTextChanged.connect(self.updateX)
+
+        # Combobox for state
+        self.inputState = QComboBox()
+        self.tabLblState = QLabel("State")
+        self.inputState.addItems(self.car_data['state'].unique())
+        self.inputState.currentTextChanged.connect(self.updateState)
+
+        # Combobox for color
+        self.inputColor = QComboBox()
+        self.tabLblColor = QLabel("Color")
+        self.inputColor.addItems(self.car_data['color'].unique())
+        self.inputColor.currentTextChanged.connect(self.updateColor)
+
+        # Combobox for color
+        self.inputInterior = QComboBox()
+        self.tabLblInterior = QLabel("Interior")
+        self.inputInterior.addItems(self.car_data['interior'].unique())
+        self.inputInterior.currentTextChanged.connect(self.updateInterior)
+
+        # Input field for Year
+        min_year = min(car_data['year'])
+        max_year = max(car_data['year'])
+        self.inputYear = QSpinBox()
+        self.tabLblYear = QLabel("Year")
+        self.inputYear.setMinimum(min_year)
+        self.inputYear.setMaximum(max_year)
+        self.inputYear.valueChanged.connect(self.updateYear)
         
 
 
@@ -206,6 +233,7 @@ class MainWindow(QMainWindow):
 
         self.tabLay1, self.tabLay2 = QVBoxLayout(), QVBoxLayout()
 
+        # Tab 1 widgets
         self.tabLay1.addWidget(self.tabLblMake)
         self.tabLay1.addWidget(self.inputMake)
         self.tabLay1.addSpacing(15)
@@ -222,17 +250,36 @@ class MainWindow(QMainWindow):
         self.tabLay1.addWidget(self.inputOdometer)
         self.tabLay1.addSpacing(15)
         
-        '''self.tabLay1.addWidget(self.tabLblCondition)
-        self.tabLay1.addWidget(self.inputCondition)
-        self.tabLay1.addSpacing(15)'''
-        
         self.tabLay1.addWidget(self.inputTransmission)
-        self.tabLay1.addSpacing(15)
+        self.tabLay1.addSpacing(20)
 
         self.tabLay1.addWidget(self.lblxComboBox)
         self.tabLay1.addWidget(self.xComboBox)
 
         self.tabLay1.addStretch()
+
+        
+        # Tab 2 widgets
+        self.tabLay2.addWidget(self.tabLblState)
+        self.tabLay2.addWidget(self.inputState)
+        self.tabLay2.addSpacing(15)
+
+        self.tabLay2.addWidget(self.tabLblColor)
+        self.tabLay2.addWidget(self.inputColor)
+        self.tabLay2.addSpacing(15)
+
+        self.tabLay2.addWidget(self.tabLblInterior)
+        self.tabLay2.addWidget(self.inputInterior)
+        self.tabLay2.addSpacing(15)
+
+        self.tabLay2.addWidget(self.tabLblCondition)
+        self.tabLay2.addWidget(self.inputCondition)
+        self.tabLay2.addSpacing(15)
+
+        self.tabLay2.addWidget(self.tabLblYear)
+        self.tabLay2.addWidget(self.inputYear)
+        self.tabLay2.addSpacing(15)
+
 
         self.tab1, self.tab2 = QWidget(), QWidget()
 
@@ -386,6 +433,26 @@ class MainWindow(QMainWindow):
         global car_body
         car_body = self.inputBody.currentText()
         self.lblBody.setText("Body: " + car_body)
+
+    def updateState(self):
+        global car_state
+        car_state = self.inputState.currentText()
+        self.lblState.setText("State: " + car_state)
+
+    def updateColor(self):
+        global car_color
+        car_color = self.inputColor.currentText()
+        self.lblColor.setText("Color: " + car_color)
+    
+    def updateInterior(self):
+        global car_interior
+        car_interior = self.inputInterior.currentText()
+        self.lblInterior.setText("Interior: " + car_interior)
+    
+    def updateYear(self):
+        global car_year
+        car_year = self.inputYear.value()
+        self.lblYear.setText("Year: " + str(car_year))
 
 def main():
     app = QApplication(sys.argv)
