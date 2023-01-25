@@ -20,8 +20,8 @@ from PyQt6.QtCore import Qt
 
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 
-car_make, car_model, car_year, car_color, car_interior = 0, 0, 0, 0, 0
-car_odometer, car_body, car_condition, car_transmission, car_state = 0, 0, 0, 0, 0 
+car_make, car_model, car_year, car_color, car_interior = [0] * 5
+car_odometer, car_body, car_condition, car_transmission, car_state = [0] * 5
 
 
 car_data = []
@@ -86,16 +86,16 @@ class MainWindow(QMainWindow):
         # assign to global variable
         car_data = self.car_data
 
-        df_train=copy.deepcopy(car_data)
+        df_train = copy.deepcopy(car_data)
 
-        cols=np.array(car_data.columns[car_data.dtypes != object])
+        cols = np.array(car_data.columns[car_data.dtypes != object])
         for i in df_train.columns:
             if i not in cols:
-                df_train[i]=df_train[i].map(str)
-        df_train.drop(columns=cols,inplace=True)
+                df_train[i] = df_train[i].map(str)
+        df_train.drop(columns=cols, inplace=True)
 
         # build dictionary function
-        cols=np.array(car_data.columns[car_data.dtypes != object])
+        cols = np.array(car_data.columns[car_data.dtypes != object])
         self.d = defaultdict(LabelEncoder)
 
         # only for categorical columns apply dictionary by calling fit_transform 
@@ -110,8 +110,8 @@ class MainWindow(QMainWindow):
             car_data2 = df_train[ftrain]
             X = car_data2.drop(columns=['sellingprice']).values
             y0 = car_data2['sellingprice'].values
-            lab_enc = preprocessing.LabelEncoder()
-            y = lab_enc.fit_transform(y0)
+            self.lab_enc = preprocessing.LabelEncoder()
+            y = self.lab_enc.fit_transform(y0)
             return X, y
         
         # Create DecisionTreeRegressor model
@@ -126,20 +126,54 @@ class MainWindow(QMainWindow):
     def showPrediction(self) :
         global car_make, car_model, car_year, car_color, car_interior
         global car_odometer, car_body, car_condition, car_transmission, car_state
-        global predictedPrice
+        global predictedPrice, car_data
 
-
-        le = preprocessing.LabelEncoder()
-
-        car_data = [car_year, car_make, car_model, car_body, car_transmission, 
-                car_state, car_condition, car_odometer, car_color, car_interior]
-        print(car_data)
-
-        model_data = le.fit_transform(car_data)
-
-        print(model_data)
+        #my_car = np.array(car_year, car_make, car_model, car_body, car_transmission, 
+        #        car_state, car_condition, car_odometer, car_color, car_interior)
         
-        predictedPrice = self.model.predict(model_data.reshape(1, -1))[0]
+        #my_car1 = np.array(1998, 'bentley', 'continental gtc', 'suv', 1, 'tx', 1.8, 49645, 'black', 'brown')
+        #print(my_car1)
+
+        #cols = np.array(1998, 1, 1.8, 49645)
+        #str_cols = np.array('bentley', 'continental gtc', 'suv', 'tx', 'black', 'brown')
+
+        # build dictionary function
+        # self.d = defaultdict(LabelEncoder)
+
+        # only for categorical columns apply dictionary by calling fit_transform 
+        #str_cols = str_cols.apply(lambda x: self.d[x.name].fit_transform(x))
+        #model_data = np.append(str_cols, cols)
+
+        ftrain = ['year', 'make', 'model', 'body', 'transmission', 
+                'state', 'condition', 'odometer', 'color', 'interior']
+
+        
+        new_row = {'year':[2005], 'make':['bentley'], 'model':['continental gtc'], 'body':['suv'],
+         'transmission':[1], 'state':['tx'], 'condition':[1.8], 'odometer':[1800],
+         'color':['black'], 'interior':['brown']}
+        df = pd.DataFrame.from_dict(new_row)
+        #df = df.append(new_row, ignore_index=True)
+        print(df)
+        df3 = copy.deepcopy(df)
+        main = copy.deepcopy(df)
+
+        cols = np.array(df.columns[df.dtypes != object])
+        for i in df.columns:
+            if i not in cols:
+                df3[i] = df3[i].map(str)
+        df3.drop(columns=cols, inplace=True)
+
+        print(df3)
+
+        # only for categorical columns apply dictionary by calling fit_transform 
+        df3 = df3.apply(lambda x: self.d[x.name].fit_transform(x))
+        df3[cols] = main[cols]
+
+        my_car = df3[ftrain]
+
+        print(my_car)
+        
+        predictedPrice = self.model.predict(my_car)[0]
         print("Predicted car price: %.2f" %predictedPrice)
 
     def initUI(self):
@@ -160,12 +194,14 @@ class MainWindow(QMainWindow):
         # Combobox for model depending on manufacturer
         self.inputModel = QComboBox()
         self.tabLblModel = QLabel("Model")
+        self.inputModel.setPlaceholderText("Select Model...")
         self.inputModel.setEnabled(False)
         self.inputModel.currentTextChanged.connect(self.updateModel)
 
         # Combobox for body 
         self.inputBody = QComboBox()
         self.tabLblBody = QLabel("Body")
+        self.inputBody.setPlaceholderText("Select Body...")
         self.inputBody.addItems(self.car_data['body'].unique())
         self.inputBody.currentTextChanged.connect(self.updateBody)
 
@@ -179,6 +215,7 @@ class MainWindow(QMainWindow):
         self.inputCondition.setDecimals(1)
         self.inputCondition.setRange(1.0, 5.0)
         self.inputCondition.setSingleStep(0.1)
+        self.inputCondition.setValue(2.5)
         self.inputCondition.valueChanged.connect(self.updateCondition)
 
         # Slider for Odometer (from 0 to max value in dataset)
@@ -190,26 +227,30 @@ class MainWindow(QMainWindow):
         self.inputOdometer.valueChanged.connect(self.updateOdometer)
 
         # Combobox for choosing x-axis on the plot
-        self.xComboBox = QComboBox()
-        self.lblxComboBox = QLabel("Choose X-axis:")
-        self.xComboBox.addItems(self.car_data.columns)
-        self.xComboBox.currentTextChanged.connect(self.updateX)
+        self.inputXaxis = QComboBox()
+        self.lblxComboBox = QLabel("X-axis feature:")
+        self.inputXaxis.setPlaceholderText("Select X-axis...")
+        self.inputXaxis.addItems(self.car_data.columns)
+        self.inputXaxis.currentTextChanged.connect(self.updateX)
 
         # Combobox for state
         self.inputState = QComboBox()
         self.tabLblState = QLabel("State")
+        self.inputState.setPlaceholderText("Select State...")
         self.inputState.addItems(self.car_data['state'].unique())
         self.inputState.currentTextChanged.connect(self.updateState)
 
         # Combobox for color
         self.inputColor = QComboBox()
         self.tabLblColor = QLabel("Color")
+        self.inputColor.setPlaceholderText("Select Color...")
         self.inputColor.addItems(self.car_data['color'].unique())
         self.inputColor.currentTextChanged.connect(self.updateColor)
 
         # Combobox for color
         self.inputInterior = QComboBox()
-        self.tabLblInterior = QLabel("Interior")
+        self.tabLblInterior = QLabel("Interior")  
+        self.inputInterior.setPlaceholderText("Select Interior...")
         self.inputInterior.addItems(self.car_data['interior'].unique())
         self.inputInterior.currentTextChanged.connect(self.updateInterior)
 
@@ -254,7 +295,7 @@ class MainWindow(QMainWindow):
         self.tabLay1.addSpacing(20)
 
         self.tabLay1.addWidget(self.lblxComboBox)
-        self.tabLay1.addWidget(self.xComboBox)
+        self.tabLay1.addWidget(self.inputXaxis)
 
         self.tabLay1.addStretch()
 
@@ -310,9 +351,9 @@ class MainWindow(QMainWindow):
         self.lblModel = QLabel('Model: -')
         self.lblBody = QLabel('Body: -')
 
-        self.lblOdometer = QLabel('Odometer: 0')
-        self.lblYear = QLabel('Year: 0')
-        self.lblCondition = QLabel('Condition: 0.0')
+        self.lblOdometer = QLabel('Odometer: -')
+        self.lblYear = QLabel('Year: -')
+        self.lblCondition = QLabel('Condition: -')
 
         self.lblState = QLabel('State: -')
         self.lblColor = QLabel('Color: -')
@@ -344,7 +385,7 @@ class MainWindow(QMainWindow):
         
         # Predict push-button
         self.btn = QPushButton("Predict")
-        self.btn.setMinimumHeight(self.btn.height() / 10)
+        self.btn.setMinimumHeight(int(self.btn.height() / 10))
         self.btn.clicked.connect(self.showPrediction)
         
         # 4th column
@@ -396,7 +437,7 @@ class MainWindow(QMainWindow):
 
     def updateX(self):
         global xAxis
-        xAxis = self.xComboBox.currentText()
+        xAxis = self.inputXaxis.currentText()
     
     def updateMake(self):
         global car_make
