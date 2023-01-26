@@ -26,7 +26,7 @@ car_odometer, car_body, car_condition, car_transmission, car_state = [0] * 5
 
 car_data = []
 predictedPrice = 0
-xAxis = "condition"
+xAxis = None
 
 class Canvas(FigureCanvas):
     def __init__(self, parent):
@@ -128,15 +128,29 @@ class MainWindow(QMainWindow):
     def showPrediction(self) :
         global car_make, car_model, car_year, car_color, car_interior
         global car_odometer, car_body, car_condition, car_transmission, car_state
-        global predictedPrice, car_data
+        global xAxis, predictedPrice, car_data
 
         ftrain = ['year', 'make', 'model', 'body', 'transmission', 
                 'state', 'condition', 'odometer', 'color', 'interior']
-
+        
         new_row = {'year':[car_year], 'make':[car_make], 'model':[car_model], 'body':[car_body],
          'transmission':[car_transmission], 'state':[car_state], 'condition':[car_condition], 'odometer':[car_odometer],
          'color':[car_color], 'interior':[car_interior]}
-        df = pd.DataFrame.from_dict(new_row)
+
+        print(xAxis)
+
+        if xAxis in ftrain:
+            df = pd.DataFrame()
+            def get_elem(x):
+                return x[0]
+            for elem in car_data[xAxis].unique():
+                new_row[xAxis] = [elem]
+                df = df.append(new_row, ignore_index=True)
+            # doesn't work
+            df.applymap(get_elem)
+        else:
+            df = pd.DataFrame.from_dict(new_row)
+
         print(df)
         df3 = copy.deepcopy(df)
 
@@ -155,9 +169,23 @@ class MainWindow(QMainWindow):
         my_car = df3[ftrain]
 
         print(my_car)
-                
-        predictedPrice = self.lab_enc.inverse_transform([int(self.model.predict(my_car)[0])])[0]
+
+        my_car_list = my_car.values
+
+        if xAxis in ftrain:
+            transformed_pred = self.model.predict(my_car_list)
+        else:
+            transformed_pred = [int(self.model.predict(my_car)[0])]    
+        predictedPrice = self.lab_enc.inverse_transform(transformed_pred)[0]
         print(f"Predicted car price: {predictedPrice} $")
+
+    def plotRent(self):
+        global car_make, car_model, car_year, car_color, car_interior
+        global car_odometer, car_body, car_condition, car_transmission, car_state
+        global xAxis, predictedPrice, car_data
+
+        xi = car_data[xAxis].values
+        y = 'sellingprice'
 
     def initUI(self):
         global car_data
@@ -387,8 +415,8 @@ class MainWindow(QMainWindow):
         self.centWidget = QWidget()
 
         self.centLay = QVBoxLayout()
-        chart = Canvas(self)
-        self.centLay.addWidget(chart, stretch= 4)
+        self.chart = Canvas(self)
+        self.centLay.addWidget(self.chart, stretch= 4)
         self.centLay.addLayout(self.outerLblLay, stretch= 1)
         self.centWidget.setLayout(self.centLay)
         #centWidget.setStyleSheet("border-top: 1px solid grey;") #background-color: white;")
