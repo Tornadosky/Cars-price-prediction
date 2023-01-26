@@ -100,17 +100,19 @@ class MainWindow(QMainWindow):
 
         # only for categorical columns apply dictionary by calling fit_transform 
         df_train = df_train.apply(lambda x: self.d[x.name].fit_transform(x))
+        
         df_train[cols] = car_data[cols]
 
         ftrain = ['year', 'make', 'model', 'body', 'transmission', 
                 'state', 'condition', 'odometer', 'color', 'interior', 'sellingprice']
+
+        self.lab_enc = preprocessing.LabelEncoder()
 
         def define_data():
             # define car dataset
             car_data2 = df_train[ftrain]
             X = car_data2.drop(columns=['sellingprice']).values
             y0 = car_data2['sellingprice'].values
-            self.lab_enc = preprocessing.LabelEncoder()
             y = self.lab_enc.fit_transform(y0)
             return X, y
         
@@ -128,34 +130,15 @@ class MainWindow(QMainWindow):
         global car_odometer, car_body, car_condition, car_transmission, car_state
         global predictedPrice, car_data
 
-        #my_car = np.array(car_year, car_make, car_model, car_body, car_transmission, 
-        #        car_state, car_condition, car_odometer, car_color, car_interior)
-        
-        #my_car1 = np.array(1998, 'bentley', 'continental gtc', 'suv', 1, 'tx', 1.8, 49645, 'black', 'brown')
-        #print(my_car1)
-
-        #cols = np.array(1998, 1, 1.8, 49645)
-        #str_cols = np.array('bentley', 'continental gtc', 'suv', 'tx', 'black', 'brown')
-
-        # build dictionary function
-        # self.d = defaultdict(LabelEncoder)
-
-        # only for categorical columns apply dictionary by calling fit_transform 
-        #str_cols = str_cols.apply(lambda x: self.d[x.name].fit_transform(x))
-        #model_data = np.append(str_cols, cols)
-
         ftrain = ['year', 'make', 'model', 'body', 'transmission', 
                 'state', 'condition', 'odometer', 'color', 'interior']
 
-        
-        new_row = {'year':[2005], 'make':['bentley'], 'model':['continental gtc'], 'body':['suv'],
-         'transmission':[1], 'state':['tx'], 'condition':[1.8], 'odometer':[1800],
-         'color':['black'], 'interior':['brown']}
+        new_row = {'year':[car_year], 'make':[car_make], 'model':[car_model], 'body':[car_body],
+         'transmission':[car_transmission], 'state':[car_state], 'condition':[car_condition], 'odometer':[car_odometer],
+         'color':[car_color], 'interior':[car_interior]}
         df = pd.DataFrame.from_dict(new_row)
-        #df = df.append(new_row, ignore_index=True)
         print(df)
         df3 = copy.deepcopy(df)
-        main = copy.deepcopy(df)
 
         cols = np.array(df.columns[df.dtypes != object])
         for i in df.columns:
@@ -166,15 +149,15 @@ class MainWindow(QMainWindow):
         print(df3)
 
         # only for categorical columns apply dictionary by calling fit_transform 
-        df3 = df3.apply(lambda x: self.d[x.name].fit_transform(x))
-        df3[cols] = main[cols]
+        df3 = df3.apply(lambda x: self.d[x.name].transform(x))
+        df3[cols] = df[cols]
 
         my_car = df3[ftrain]
 
         print(my_car)
-        
-        predictedPrice = self.model.predict(my_car)[0]
-        print("Predicted car price: %.2f" %predictedPrice)
+                
+        predictedPrice = self.lab_enc.inverse_transform([int(self.model.predict(my_car)[0])])[0]
+        print(f"Predicted car price: {predictedPrice} $")
 
     def initUI(self):
         global car_data
