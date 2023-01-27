@@ -32,21 +32,9 @@ class Canvas(FigureCanvas):
     def __init__(self, parent):
         global xAxis
 
-        fig, self.ax = plt.subplots(figsize=(5, 4), dpi=80)
-        super().__init__(fig)
+        self.fig, self.ax = plt.subplots(figsize=(5, 4), dpi=80)
+        super().__init__(self.fig)
         self.setParent(parent)
-
-        """ 
-        Matplotlib Script
-        """
-        t = np.arange(0.0, 2.0, 0.01)
-        s = 1 + np.sin(2 * np.pi * t)
-        
-        self.ax.plot(t, s)
-
-        self.ax.set(xlabel=xAxis, ylabel='voltage (mV)',
-               title='About as simple as it gets, folks')
-        self.ax.grid()
 
 
 class MainWindow(QMainWindow):
@@ -139,7 +127,7 @@ class MainWindow(QMainWindow):
 
         print(xAxis)
 
-        if xAxis in ftrain:
+        '''if xAxis in ftrain:
             df = pd.DataFrame()
             def get_elem(x):
                 return x[0]
@@ -148,8 +136,8 @@ class MainWindow(QMainWindow):
                 df = df.append(new_row, ignore_index=True)
             # doesn't work
             df.applymap(get_elem)
-        else:
-            df = pd.DataFrame.from_dict(new_row)
+        else:'''
+        df = pd.DataFrame.from_dict(new_row)
 
         print(df)
         df3 = copy.deepcopy(df)
@@ -172,20 +160,45 @@ class MainWindow(QMainWindow):
 
         my_car_list = my_car.values
 
-        if xAxis in ftrain:
-            transformed_pred = self.model.predict(my_car_list)
-        else:
-            transformed_pred = [int(self.model.predict(my_car)[0])]    
+        #if xAxis in ftrain:
+            #transformed_pred = self.model.predict(my_car_list)
+        #else:
+        transformed_pred = [int(self.model.predict(my_car)[0])]    
         predictedPrice = self.lab_enc.inverse_transform(transformed_pred)[0]
         print(f"Predicted car price: {predictedPrice} $")
 
-    def plotRent(self):
+        self.plotRent(car_year, predictedPrice)
+
+    def plotRent(self, year=None, price=None):
         global car_make, car_model, car_year, car_color, car_interior
         global car_odometer, car_body, car_condition, car_transmission, car_state
         global xAxis, predictedPrice, car_data
 
-        xi = car_data[xAxis].values
+        #xi = car_data[xAxis].values
         y = 'sellingprice'
+
+        self.chart.ax.cla()
+        self.dataFrame = car_data.loc[:, ('sellingprice', 'year')]
+        
+        self.dataFrame.sort_values(by=['year'], inplace=True)
+        x_vals = car_data["year"].unique()
+        y_vals = []
+        for elem in x_vals:
+            price_list = self.dataFrame.loc[self.dataFrame['year'] == elem]['sellingprice'].values
+            print(price_list)
+            y_vals.append(sum(price_list) // len(price_list))
+        # Make dictionary, keys will become dataframe column names
+        intermediate_dictionary = {'sellingprice':y_vals, 'year':x_vals}
+
+        # Convert dictionary to Pandas dataframe
+        self.dataFrame = pd.DataFrame(intermediate_dictionary)
+        self.dataFrame.reset_index(drop = True, inplace = True)
+        self.dataFrame.set_index('year').plot(kind='bar', ax=self.chart.ax)
+        
+        self.chart.ax.plot(year, price, marker="*", markersize=5, c='red')
+        
+        self.chart.draw()
+        
 
     def initUI(self):
         global car_data
@@ -195,6 +208,7 @@ class MainWindow(QMainWindow):
         self.unique_manuf = car_data['make'].unique()
         completer = QCompleter(self.unique_manuf)
         completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+
         # Input field for Manufacturer with auto completion
         self.inputMake = QLineEdit()
         self.tabLblMake = QLabel("Manufacturer")
@@ -234,14 +248,14 @@ class MainWindow(QMainWindow):
         self.inputOdometer = QSlider(Qt.Orientation.Horizontal)
         self.tabLblOdometer = QLabel("Odometer")
         self.inputOdometer.setMinimum(0)
-        self.inputOdometer.setMaximum(max_odometer)
+        self.inputOdometer.setMaximum(max_odometer // 3)
         self.inputOdometer.valueChanged.connect(self.updateOdometer)
 
         # Combobox for choosing x-axis on the plot
         self.inputXaxis = QComboBox()
         self.lblxComboBox = QLabel("X-axis feature:")
         self.inputXaxis.setPlaceholderText("Select X-axis...")
-        self.inputXaxis.addItems(self.car_data.columns)
+        self.inputXaxis.addItems(self.car_data.columns) 
         self.inputXaxis.currentTextChanged.connect(self.updateX)
 
         # Combobox for state
@@ -258,7 +272,7 @@ class MainWindow(QMainWindow):
         self.inputColor.addItems(self.car_data['color'].unique())
         self.inputColor.currentTextChanged.connect(self.updateColor)
 
-        # Combobox for color
+        # Combobox for interior color
         self.inputInterior = QComboBox()
         self.tabLblInterior = QLabel("Interior")  
         self.inputInterior.setPlaceholderText("Select Interior...")
@@ -273,14 +287,6 @@ class MainWindow(QMainWindow):
         self.inputYear.setMinimum(min_year)
         self.inputYear.setMaximum(max_year)
         self.inputYear.valueChanged.connect(self.updateYear)
-        
-
-
-
-        '''inputLay0Tab2 = QVBoxLayout()
-        inputLay1Tab2 = QVBoxLayout()
-        inputLay2Tab2 = QVBoxLayout()
-        inputLay3Tab2 = QVBoxLayout()'''
         
 
         self.tabLay1, self.tabLay2 = QVBoxLayout(), QVBoxLayout()
@@ -333,6 +339,8 @@ class MainWindow(QMainWindow):
         self.tabLay2.addSpacing(15)
 
 
+
+        # Tabs for TabWidget
         self.tab1, self.tab2 = QWidget(), QWidget()
 
         self.tab1.setLayout(self.tabLay1)
@@ -350,7 +358,7 @@ class MainWindow(QMainWindow):
         self.outerTabWidLay.addWidget(self.tabWidget)
         self.innerDockWidget.setLayout(self.outerTabWidLay)
 
-
+        # DockWidget
         self.dockWidget = QDockWidget("Dock")
         self.dockWidget.setFeatures(QDockWidget.DockWidgetFeature.NoDockWidgetFeatures)
         self.dockWidget.setWidget(self.innerDockWidget)
@@ -416,6 +424,7 @@ class MainWindow(QMainWindow):
 
         self.centLay = QVBoxLayout()
         self.chart = Canvas(self)
+        self.plotRent(2008, 13000)
         self.centLay.addWidget(self.chart, stretch= 4)
         self.centLay.addLayout(self.outerLblLay, stretch= 1)
         self.centWidget.setLayout(self.centLay)
@@ -424,7 +433,7 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self.centWidget)
         self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.dockWidget)
 
-    
+        # Exit application action
         exitAct = QAction(QIcon('exit.png'), '&Exit', self)
         exitAct.setShortcut('Ctrl+Q')
         exitAct.setStatusTip('Exit application')
@@ -432,6 +441,7 @@ class MainWindow(QMainWindow):
 
         self.statusBar()
 
+        # Menubar
         menubar = self.menuBar()
         fileMenu = menubar.addMenu('&File')
         fileMenu.addAction(exitAct)
