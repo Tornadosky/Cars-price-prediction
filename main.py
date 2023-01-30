@@ -21,9 +21,9 @@ from PyQt6.QtCore import Qt
 
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 
-car_make, car_model, car_year, car_color, car_interior = [None] * 5
-car_odometer, car_body, car_condition, car_transmission, car_state = [None] * 5
-
+car = { 'year': None, 'make': None, 'model': None, 'body': None,
+         'transmission': 0, 'state': None, 'condition': None, 'odometer': None,
+         'color': None, 'interior': None }
 
 car_data = []
 predictedPrice = 0
@@ -115,16 +115,15 @@ class MainWindow(QMainWindow):
         print(self.model.score(X_test, y_test))
 
     def showPrediction(self) :
-        global car_make, car_model, car_year, car_color, car_interior
-        global car_odometer, car_body, car_condition, car_transmission, car_state
-        global xAxis, predictedPrice, car_data
+        global xAxis, predictedPrice, car_data, car
 
         ftrain = ['year', 'make', 'model', 'body', 'transmission', 
                 'state', 'condition', 'odometer', 'color', 'interior']
-        
-        new_row = {'year':[car_year], 'make':[car_make], 'model':[car_model], 'body':[car_body],
-         'transmission':[car_transmission], 'state':[car_state], 'condition':[car_condition], 'odometer':[car_odometer],
-         'color':[car_color], 'interior':[car_interior]}
+                
+        new_row = { 'year':[car['year']], 'make':[car['make']], 'model':[car['model']], 'body':[car['body']],
+         'transmission':[car['transmission']], 'state':[car['state']], 'condition':[car['condition']], 'odometer':[car['odometer']],
+         'color':[car['color']], 'interior':[car['interior']] }
+
         new_row_vals = [i[0] for i in list(new_row.values())]
         #print(new_row_vals)
         if None in new_row_vals:
@@ -176,12 +175,10 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage(f"Predicted car price: {predictedPrice} $")
         print(f"Predicted car price: {predictedPrice} $")
 
-        self.plotRent(car_year, predictedPrice)
+        self.plotRent(car['year'], predictedPrice)
 
     def plotRent(self, year=None, price=None):
-        global car_make, car_model, car_year, car_color, car_interior
-        global car_odometer, car_body, car_condition, car_transmission, car_state
-        global xAxis, predictedPrice, car_data
+        global xAxis, predictedPrice, car_data, car
 
         #xi = car_data[xAxis].values
         y = 'sellingprice'
@@ -194,7 +191,6 @@ class MainWindow(QMainWindow):
         y_vals = []
         for elem in x_vals:
             price_list = self.dataFrame.loc[self.dataFrame['year'] == elem]['sellingprice'].values
-            print(price_list)
             y_vals.append(sum(price_list) // len(price_list))
         # Make dictionary, keys will become dataframe column names
         intermediate_dictionary = {'sellingprice':y_vals, 'year':x_vals}
@@ -208,7 +204,6 @@ class MainWindow(QMainWindow):
         
         self.chart.draw()
         
-
     def initUI(self):
         global car_data
         global xAxis
@@ -469,21 +464,21 @@ class MainWindow(QMainWindow):
             self.statusBar().show()
     
     def updateOdometer(self):
-        global car_odometer
-        car_odometer = self.inputOdometer.value()
-        self.lblOdometer.setText("Odometer: " + str(car_odometer))
+        global car
+        car['odometer'] = self.inputOdometer.value()
+        self.lblOdometer.setText("Odometer: " + str(car['odometer']))
     
     def updateCondition(self):
-        global car_condition
-        car_condition = round(self.inputCondition.value(), 1)
-        self.lblCondition.setText("Condition: " + str(car_condition))
+        global car
+        car['condition'] = round(self.inputCondition.value(), 1)
+        self.lblCondition.setText("Condition: " + str(car['condition']))
 
     def updateX(self):
         global xAxis
         xAxis = self.inputXaxis.currentText()
     
     def updateMake(self):
-        global car_make
+        global car
         val = self.inputMake.text().lower()
         if val not in self.unique_manuf:
             val = None
@@ -491,52 +486,52 @@ class MainWindow(QMainWindow):
             self.inputModel.clear()
             self.inputModel.addItems(self.car_data.loc[self.car_data['make'] == val]['model'].unique())
             self.inputModel.setEnabled(True)
-            car_make = val
+            car['make'] = val
             self.lblMake.setText("Manufacturer: " + val.capitalize())
         else:
             self.inputModel.setEnabled(False)
         
     def updateModel(self):
-        global car_model
-        car_model = self.inputModel.currentText()
-        self.lblModel.setText("Model: " + car_model)
+        global car
+        car['model'] = self.inputModel.currentText()
+        self.lblModel.setText("Model: " + car['model'])
 
     def updateTransmission(self):
-        global car_transmission
+        global car
 
         val = self.inputTransmission.isChecked()
         if val:
             val = "Auto"
-            car_transmission = 1
+            car['transmission'] = 1
         else:
             val = "Manual"
-            car_transmission = 0
+            car['transmission'] = 0
         self.lblTransmission.setText("Transmission: " + val)
 
     def updateBody(self):
-        global car_body
-        car_body = self.inputBody.currentText()
-        self.lblBody.setText("Body: " + car_body)
+        global car
+        car['body'] = self.inputBody.currentText()
+        self.lblBody.setText("Body: " + car['body'])
 
     def updateState(self):
-        global car_state
-        car_state = self.inputState.currentText()
-        self.lblState.setText("State: " + car_state)
+        global car
+        car['state'] = self.inputState.currentText()
+        self.lblState.setText("State: " + car['state'])
 
     def updateColor(self):
-        global car_color
-        car_color = self.inputColor.currentText()
-        self.lblColor.setText("Color: " + car_color)
+        global car
+        car['color'] = self.inputColor.currentText()
+        self.lblColor.setText("Color: " + car['color'])
     
     def updateInterior(self):
-        global car_interior
-        car_interior = self.inputInterior.currentText()
-        self.lblInterior.setText("Interior: " + car_interior)
+        global car
+        car['interior'] = self.inputInterior.currentText()
+        self.lblInterior.setText("Interior: " + car['interior'])
     
     def updateYear(self):
-        global car_year
-        car_year = self.inputYear.value()
-        self.lblYear.setText("Year: " + str(car_year))
+        global car
+        car['year'] = self.inputYear.value()
+        self.lblYear.setText("Year: " + str(car['year']))
 
 def main():
     app = QApplication(sys.argv)
