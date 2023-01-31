@@ -27,12 +27,10 @@ car = { 'year': None, 'make': None, 'model': None, 'body': None,
 
 car_data = []
 predictedPrice = 0
-xAxis = None
+xAxis = 'year'
 
 class Canvas(FigureCanvas):
     def __init__(self, parent):
-        global xAxis
-
         self.fig, self.ax = plt.subplots(figsize=(5, 4), dpi=80)
         super().__init__(self.fig)
         self.setParent(parent)
@@ -125,14 +123,12 @@ class MainWindow(QMainWindow):
          'color':[car['color']], 'interior':[car['interior']] }
 
         new_row_vals = [i[0] for i in list(new_row.values())]
-        #print(new_row_vals)
+
         if None in new_row_vals:
             self.statusBar().setStyleSheet("background-color : red")
             self.statusBar().showMessage("Invalid Input!")
             print("Invalid Input!")
             return 
-
-        #print(xAxis)
 
         '''if xAxis in ftrain:
             df = pd.DataFrame()
@@ -155,15 +151,11 @@ class MainWindow(QMainWindow):
                 df3[i] = df3[i].map(str)
         df3.drop(columns=cols, inplace=True)
 
-        #print(df3)
-
         # only for categorical columns apply dictionary by calling fit_transform 
         df3 = df3.apply(lambda x: self.d[x.name].transform(x))
         df3[cols] = df[cols]
 
         my_car = df3[ftrain]
-
-        #print(my_car)
 
         my_car_list = my_car.values
 
@@ -175,32 +167,39 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage(f"Predicted car price: {predictedPrice} $")
         print(f"Predicted car price: {predictedPrice} $")
 
-        self.plotRent(car['year'], predictedPrice)
+        self.plotRent(car[xAxis], predictedPrice)
 
-    def plotRent(self, year=None, price=None):
+    def plotRent(self, xAx=None, price=None):
         global xAxis, predictedPrice, car_data, car
 
-        #xi = car_data[xAxis].values
-        y = 'sellingprice'
-
         self.chart.ax.cla()
-        self.dataFrame = car_data.loc[:, ('sellingprice', 'year')]
+        if xAxis == 'model':
+            plot_df = car_data.loc[car_data['make'] == car['make']].loc[:, ('sellingprice', xAxis)]
+        else:
+            plot_df = car_data.loc[:, ('sellingprice', xAxis)]
         
-        self.dataFrame.sort_values(by=['year'], inplace=True)
-        x_vals = car_data["year"].unique()
-        y_vals = []
-        for elem in x_vals:
-            price_list = self.dataFrame.loc[self.dataFrame['year'] == elem]['sellingprice'].values
-            y_vals.append(sum(price_list) // len(price_list))
-        # Make dictionary, keys will become dataframe column names
-        intermediate_dictionary = {'sellingprice':y_vals, 'year':x_vals}
+        if isinstance(car_data[xAxis][0], str):
 
-        # Convert dictionary to Pandas dataframe
-        self.dataFrame = pd.DataFrame(intermediate_dictionary)
-        self.dataFrame.reset_index(drop = True, inplace = True)
-        self.dataFrame.set_index('year').plot(kind='bar', ax=self.chart.ax)
-        
-        self.chart.ax.plot(year, price, marker="*", markersize=5, c='red')
+            plot_df.sort_values(by=[xAxis], ascending=True, inplace=True)
+            x_vals = plot_df[xAxis].unique()
+            y_vals = []
+            for elem in x_vals:
+                price_list = plot_df.loc[plot_df[xAxis] == elem]['sellingprice'].values
+                y_vals.append(sum(price_list) // len(price_list))
+            # Make dictionary, keys will become dataframe column names
+            intermediate_dictionary = {'sellingprice':y_vals, xAxis:x_vals}
+
+            # Convert dictionary to Pandas dataframe
+            plot_df = pd.DataFrame(intermediate_dictionary)
+            plot_df.reset_index(drop = True, inplace = True)
+            plot_df.set_index(xAxis).plot(kind='bar', ax=self.chart.ax)
+            
+            #self.chart.ax.plot(year, price, marker="*", markersize=5, c='red')
+            if xAx and price:
+                print(xAx)
+                print(price)
+                self.chart.ax.plot(xAx, price, marker="^", linestyle="", alpha=0.8, c='red')
+
         
         self.chart.draw()
         
@@ -259,7 +258,7 @@ class MainWindow(QMainWindow):
         self.inputXaxis = QComboBox()
         self.lblxComboBox = QLabel("X-axis feature:")
         self.inputXaxis.setPlaceholderText("Select X-axis...")
-        self.inputXaxis.addItems(self.car_data.columns) 
+        self.inputXaxis.addItems(self.car_data.columns.drop('sellingprice')) 
         self.inputXaxis.currentTextChanged.connect(self.updateX)
 
         # Combobox for state
@@ -428,7 +427,9 @@ class MainWindow(QMainWindow):
 
         self.centLay = QVBoxLayout()
         self.chart = Canvas(self)
-        self.plotRent(2008, 13000)
+
+        self.plotRent(car[xAxis], 23000)
+
         self.centLay.addWidget(self.chart, stretch= 4)
         self.centLay.addLayout(self.outerLblLay, stretch= 1)
         self.centWidget.setLayout(self.centLay)
@@ -488,8 +489,10 @@ class MainWindow(QMainWindow):
             self.inputModel.setEnabled(True)
             car['make'] = val
             self.lblMake.setText("Manufacturer: " + val.capitalize())
+            car['model'] = None
         else:
             self.inputModel.setEnabled(False)
+            car['model'] = None
         
     def updateModel(self):
         global car
