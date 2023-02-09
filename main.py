@@ -1,4 +1,5 @@
 import sys
+from pathlib import Path
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
@@ -30,6 +31,18 @@ car_data = []
 predictedPrice = 0
 # xAxis is a chosen by user independent feature to be displayed on plot
 xAxis = 'odometer'
+
+IMAGES_PATH = Path() / "images" 
+IMAGES_PATH.mkdir(parents=True, exist_ok=True)
+def save_fig(fig, fig_id, tight_layout=True, fig_extension="png", resolution=300):
+    path = IMAGES_PATH / f"{fig_id}.{fig_extension}"
+    # added by UG, see https://mldoodles.com/matplotlib-saves-blank-plot/
+    # https://pythonguides.com/matplotlib-savefig-blank-image/
+    # https://stackabuse.com/save-plot-as-image-with-matplotlib/
+    # fig, ax = plt.subplots()
+    if tight_layout:
+        fig.tight_layout()
+    fig.savefig(path, format=fig_extension, dpi=resolution)
 
 
 class Canvas(FigureCanvas):
@@ -133,16 +146,6 @@ class MainWindow(QMainWindow):
             print("Invalid Input!")
             return 
 
-        '''if xAxis in ftrain:
-            df = pd.DataFrame()
-            def get_elem(x):
-                return x[0]
-            for elem in car_data[xAxis].unique():
-                new_row[xAxis] = [elem]
-                df = df.append(new_row, ignore_index=True)
-            # doesn't work
-            df.applymap(get_elem)
-        else:'''
         df = pd.DataFrame.from_dict(new_row)
 
         print(df)
@@ -159,12 +162,7 @@ class MainWindow(QMainWindow):
         df3[cols] = df[cols]
 
         my_car = df3[ftrain]
-
-        my_car_list = my_car.values
-
-        #if xAxis in ftrain:
-            #transformed_pred = self.model.predict(my_car_list)
-        #else:
+        
         transformed_pred = [int(self.model.predict(my_car)[0])]    
         predictedPrice = self.lab_enc.inverse_transform(transformed_pred)[0]
         self.statusBar().showMessage(f"Predicted car price: {predictedPrice} $")
@@ -221,7 +219,7 @@ class MainWindow(QMainWindow):
         # Plot our predicted price with marker
         if car[xAxis] and predictedPrice:
             self.chart.ax.plot(car[xAxis], predictedPrice, marker="^", linestyle="", alpha=0.8, c='red')
-
+        
         self.chart.draw()
         
     def initUI(self):
@@ -465,6 +463,12 @@ class MainWindow(QMainWindow):
         exitAct.setStatusTip('Exit application')
         exitAct.triggered.connect(QApplication.instance().quit)
 
+        # Save plot action
+        savePlt = QAction(QIcon('save.png'), '&Save', self)
+        savePlt.setShortcut('Ctrl+S')
+        savePlt.setStatusTip('Save Plot')
+        savePlt.triggered.connect(self.savePlot)
+
         #self.statusBar = QStatusBar()
         #self.setStatusBar(self.statusBar)
         self.statusBar().messageChanged.connect(self.updateStatus)
@@ -474,6 +478,10 @@ class MainWindow(QMainWindow):
         menubar = self.menuBar()
         fileMenu = menubar.addMenu('&File')
         fileMenu.addAction(exitAct)
+        fileMenu.addAction(savePlt)
+    
+    def savePlot(self):
+        save_fig(self.chart.figure, "prediction_plot", tight_layout=True, fig_extension="png", resolution=300)
 
     def updateStatus(self):
         val = self.statusBar().currentMessage()
