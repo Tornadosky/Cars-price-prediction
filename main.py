@@ -21,13 +21,16 @@ from PyQt6.QtCore import Qt
 
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 
+# Initial global variables
+# Car dict for user's input 
 car = { 'year': None, 'make': None, 'model': None, 'body': None,
          'transmission': 0, 'state': None, 'condition': None, 'odometer': None,
          'color': None, 'interior': None }
-
 car_data = []
 predictedPrice = 0
-xAxis = 'year'
+# xAxis is a chosen by user independent feature to be displayed on plot
+xAxis = 'odometer'
+
 
 class Canvas(FigureCanvas):
     def __init__(self, parent):
@@ -167,45 +170,63 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage(f"Predicted car price: {predictedPrice} $")
         print(f"Predicted car price: {predictedPrice} $")
 
-        self.plotRent(car[xAxis], predictedPrice)
+        self.plotPrice()
 
-    def plotRent(self, xAx=None, price=None):
+    def plotPrice(self):
         global xAxis, predictedPrice, car_data, car
-
+        
+        # Clear the chart
         self.chart.ax.cla()
+
+        # Get x, y values for plot
         if xAxis == 'model':
             plot_df = car_data.loc[car_data['make'] == car['make']].loc[:, ('sellingprice', xAxis)]
         else:
             plot_df = car_data.loc[:, ('sellingprice', xAxis)]
         
-        if isinstance(car_data[xAxis][0], str):
+        plot_df.sort_values(by=[xAxis], ascending=True, inplace=True)
 
-            plot_df.sort_values(by=[xAxis], ascending=True, inplace=True)
-            x_vals = plot_df[xAxis].unique()
-            y_vals = []
-            for elem in x_vals:
-                price_list = plot_df.loc[plot_df[xAxis] == elem]['sellingprice'].values
-                y_vals.append(sum(price_list) // len(price_list))
-            # Make dictionary, keys will become dataframe column names
-            intermediate_dictionary = {'sellingprice':y_vals, xAxis:x_vals}
+        # Appropriate range for different features
+        if isinstance(car_data[xAxis][0], str) or xAxis != "odometer":
+            x_range = plot_df[xAxis].unique()
+        else:
+            chunk_size = 1000
+            min_val, max_val = min(plot_df[xAxis]), max(plot_df[xAxis])
+            interval_step = (max_val - min_val) // chunk_size
 
-            # Convert dictionary to Pandas dataframe
-            plot_df = pd.DataFrame(intermediate_dictionary)
-            plot_df.reset_index(drop = True, inplace = True)
-            plot_df.set_index(xAxis).plot(kind='bar', ax=self.chart.ax)
-            
-            #self.chart.ax.plot(year, price, marker="*", markersize=5, c='red')
-            if xAx and price:
-                print(xAx)
-                print(price)
-                self.chart.ax.plot(xAx, price, marker="^", linestyle="", alpha=0.8, c='red')
+            x_range = plot_df[xAxis].unique()[int(min_val)::int(interval_step)]
 
+        # Get average price for each x
+        x_vals = []
+        y_vals = []
         
+        for elem in x_range:
+            price_list = plot_df.loc[plot_df[xAxis] == elem]['sellingprice'].values
+
+            if len(price_list):
+                x_vals.append(elem)
+                y_vals.append(sum(price_list) // len(price_list))
+            
+        # Make dictionary, keys will become dataframe column names
+        intermediate_dictionary = {'sellingprice':y_vals, xAxis:x_vals}
+
+        # Convert dictionary to Pandas dataframe
+        plot_df = pd.DataFrame(intermediate_dictionary)
+        plot_df.reset_index(drop = True, inplace = True)
+        if isinstance(car_data[xAxis][0], str):
+            plot_df.set_index(xAxis).plot(kind='bar', ax=self.chart.ax)
+        else:
+            plot_df.set_index(xAxis).plot(ax=self.chart.ax)
+
+        # Plot our predicted price with marker
+        if car[xAxis] and predictedPrice:
+            self.chart.ax.plot(car[xAxis], predictedPrice, marker="^", linestyle="", alpha=0.8, c='red')
+
         self.chart.draw()
         
     def initUI(self):
         global car_data
-        global xAxis
+        global xAxis, predictedPrice
 
         # Auto complete for QLineEdit()
         self.unique_manuf = car_data['make'].unique()
@@ -428,7 +449,7 @@ class MainWindow(QMainWindow):
         self.centLay = QVBoxLayout()
         self.chart = Canvas(self)
 
-        self.plotRent(car[xAxis], 23000)
+        self.plotPrice()
 
         self.centLay.addWidget(self.chart, stretch= 4)
         self.centLay.addLayout(self.outerLblLay, stretch= 1)
