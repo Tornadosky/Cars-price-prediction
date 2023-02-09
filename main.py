@@ -34,7 +34,7 @@ xAxis = 'odometer'
 
 IMAGES_PATH = Path() / "images" 
 IMAGES_PATH.mkdir(parents=True, exist_ok=True)
-def save_fig(fig, fig_id, tight_layout=True, fig_extension="png", resolution=300):
+def saveFig(fig, fig_id, tight_layout=True, fig_extension="png", resolution=300):
     path = IMAGES_PATH / f"{fig_id}.{fig_extension}"
     # added by UG, see https://mldoodles.com/matplotlib-saves-blank-plot/
     # https://pythonguides.com/matplotlib-savefig-blank-image/
@@ -46,11 +46,31 @@ def save_fig(fig, fig_id, tight_layout=True, fig_extension="png", resolution=300
 
 
 class Canvas(FigureCanvas):
-    def __init__(self, parent):
+    def __init__(self, parent=None):
         self.fig, self.ax = plt.subplots(figsize=(5, 4), dpi=80)
         super().__init__(self.fig)
-        self.setParent(parent)
 
+class SecondWindow(QMainWindow):
+
+    def __init__(self):
+        super().__init__()
+
+        global car_data
+
+        self.setWindowTitle('Histograms')
+        self.setGeometry(310, 110, 750, 450)
+        
+        secWindLay = QHBoxLayout()
+        secWindWid = QWidget()
+
+        self.chart2 = Canvas(self)
+        car_data.hist(ax=self.chart2.ax, bins=50, figsize=(20,15))
+
+        secWindLay.addWidget(self.chart2)
+        secWindWid.setLayout(secWindLay)
+        self.setCentralWidget(secWindWid)
+        
+        saveFig(self.chart2.fig,"histogram", tight_layout=True, fig_extension="png", resolution=300)
 
 class MainWindow(QMainWindow):
 
@@ -214,7 +234,7 @@ class MainWindow(QMainWindow):
         if isinstance(car_data[xAxis][0], str):
             plot_df.set_index(xAxis).plot(kind='bar', ax=self.chart.ax)
         else:
-            plot_df.set_index(xAxis).plot(ax=self.chart.ax)
+            plot_df.set_index(xAxis).plot(ax=self.chart.ax, marker=".", markersize=3)
 
         # Plot our predicted price with marker
         if car[xAxis] and predictedPrice:
@@ -222,9 +242,15 @@ class MainWindow(QMainWindow):
         
         self.chart.draw()
         
+    def showSecondWindow(self):
+        if self.win2.isHidden(): 
+            self.win2.show()
+
     def initUI(self):
         global car_data
         global xAxis, predictedPrice
+
+        self.win2 = SecondWindow()
 
         # Auto complete for QLineEdit()
         self.unique_manuf = car_data['make'].unique()
@@ -469,6 +495,12 @@ class MainWindow(QMainWindow):
         savePlt.setStatusTip('Save Plot')
         savePlt.triggered.connect(self.savePlot)
 
+        # Show histograms in win2 action
+        showHist = QAction(QIcon("graph.png"), "&Histogram", self)
+        showHist.setStatusTip("Show histograms")
+        showHist.triggered.connect(self.showSecondWindow)
+
+
         #self.statusBar = QStatusBar()
         #self.setStatusBar(self.statusBar)
         self.statusBar().messageChanged.connect(self.updateStatus)
@@ -479,9 +511,10 @@ class MainWindow(QMainWindow):
         fileMenu = menubar.addMenu('&File')
         fileMenu.addAction(exitAct)
         fileMenu.addAction(savePlt)
+        fileMenu.addAction(showHist)
     
     def savePlot(self):
-        save_fig(self.chart.figure, "prediction_plot", tight_layout=True, fig_extension="png", resolution=300)
+        saveFig(self.chart.fig, "prediction_plot", tight_layout=True, fig_extension="png", resolution=300)
 
     def updateStatus(self):
         val = self.statusBar().currentMessage()
