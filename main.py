@@ -15,8 +15,8 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import LabelEncoder
 from collections import defaultdict
 from PyQt6.QtWidgets import (QMainWindow, QApplication, QWidget, QLabel, QLineEdit, QSpinBox,
- QCheckBox, QComboBox, QSlider, QSpinBox, QDoubleSpinBox, QDockWidget, QListWidget, QVBoxLayout, QHBoxLayout,
- QTabWidget, QFrame, QPushButton, QCompleter, QStatusBar)
+ QCheckBox, QComboBox, QSlider, QSpinBox, QDoubleSpinBox, QDockWidget, QVBoxLayout, QHBoxLayout,
+ QTabWidget, QFrame, QPushButton, QCompleter)
 from PyQt6.QtGui import QIcon, QAction, QPixmap
 from PyQt6.QtCore import Qt
 
@@ -239,7 +239,8 @@ class MainWindow(QMainWindow):
         # Plot our predicted price with marker
         if car[xAxis] and predictedPrice:
             self.chart.ax.plot(car[xAxis], predictedPrice, marker="^", linestyle="", alpha=0.8, c='red')
-        
+      
+        self.chart.fig.tight_layout()
         self.chart.draw()
         
     def showSecondWindow(self):
@@ -275,7 +276,7 @@ class MainWindow(QMainWindow):
         self.inputBody = QComboBox()
         self.tabLblBody = QLabel("Body")
         self.inputBody.setPlaceholderText("Select Body...")
-        self.inputBody.addItems(self.car_data['body'].unique())
+        self.inputBody.addItems(np.sort(car_data['body'].unique()))
         self.inputBody.currentTextChanged.connect(self.updateBody)
 
         # Checkbox for Transmission (Auto - checked, Manual - unchecked)
@@ -303,28 +304,29 @@ class MainWindow(QMainWindow):
         self.inputXaxis = QComboBox()
         self.lblxComboBox = QLabel("X-axis feature:")
         self.inputXaxis.setPlaceholderText("Select X-axis...")
-        self.inputXaxis.addItems(self.car_data.columns.drop('sellingprice')) 
+        self.inputXaxis.addItems(np.sort(car_data.columns.drop('sellingprice'))) 
+        self.inputXaxis.setItemText(self.inputXaxis.findText('make'), 'manufacturer')
         self.inputXaxis.currentTextChanged.connect(self.updateX)
 
         # Combobox for state
         self.inputState = QComboBox()
         self.tabLblState = QLabel("State")
         self.inputState.setPlaceholderText("Select State...")
-        self.inputState.addItems(self.car_data['state'].unique())
+        self.inputState.addItems(np.sort(car_data['state'].unique()))
         self.inputState.currentTextChanged.connect(self.updateState)
 
         # Combobox for color
         self.inputColor = QComboBox()
         self.tabLblColor = QLabel("Color")
         self.inputColor.setPlaceholderText("Select Color...")
-        self.inputColor.addItems(self.car_data['color'].unique())
+        self.inputColor.addItems(np.sort(car_data['color'].unique()))
         self.inputColor.currentTextChanged.connect(self.updateColor)
 
         # Combobox for interior color
         self.inputInterior = QComboBox()
         self.tabLblInterior = QLabel("Interior")  
         self.inputInterior.setPlaceholderText("Select Interior...")
-        self.inputInterior.addItems(self.car_data['interior'].unique())
+        self.inputInterior.addItems(np.sort(car_data['interior'].unique()))
         self.inputInterior.currentTextChanged.connect(self.updateInterior)
 
         # Input field for Year
@@ -514,7 +516,8 @@ class MainWindow(QMainWindow):
         fileMenu.addAction(showHist)
     
     def savePlot(self):
-        saveFig(self.chart.fig, "prediction_plot", tight_layout=True, fig_extension="png", resolution=300)
+        global xAxis, predictedPrice
+        saveFig(self.chart.fig, f"prediction_plot_{xAxis}_{predictedPrice}", tight_layout=True, fig_extension="png", resolution=300)
 
     def updateStatus(self):
         val = self.statusBar().currentMessage()
@@ -547,10 +550,13 @@ class MainWindow(QMainWindow):
             val = None
         if val:
             self.inputModel.clear()
-            self.inputModel.addItems(self.car_data.loc[self.car_data['make'] == val]['model'].unique())
+            self.inputModel.addItems(np.sort(car_data.loc[car_data['make'] == val]['model'].unique()))
             self.inputModel.setEnabled(True)
             car['make'] = val
-            self.lblMake.setText("Manufacturer: " + val.capitalize())
+            if val == 'bmw':
+                self.lblMake.setText("Manufacturer: " + val.upper())
+            else:
+                self.lblMake.setText("Manufacturer: " + val.capitalize())
             car['model'] = None
         else:
             self.inputModel.setEnabled(False)
@@ -581,17 +587,17 @@ class MainWindow(QMainWindow):
     def updateState(self):
         global car
         car['state'] = self.inputState.currentText()
-        self.lblState.setText("State: " + car['state'])
+        self.lblState.setText("State: " + car['state'].upper())
 
     def updateColor(self):
         global car
         car['color'] = self.inputColor.currentText()
-        self.lblColor.setText("Color: " + car['color'])
+        self.lblColor.setText("Color: " + car['color'].capitalize())
     
     def updateInterior(self):
         global car
         car['interior'] = self.inputInterior.currentText()
-        self.lblInterior.setText("Interior: " + car['interior'])
+        self.lblInterior.setText("Interior: " + car['interior'].capitalize())
     
     def updateYear(self):
         global car
