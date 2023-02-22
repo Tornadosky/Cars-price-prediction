@@ -23,14 +23,14 @@ from PyQt6.QtCore import Qt
 
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 
-# Initial global variables
-# Car dict for user's input 
+# initial global variables
+# car dict for user's input 
 car = { 'year': None, 'make': None, 'model': None, 'body': None,
          'transmission': 0, 'state': None, 'condition': None, 'odometer': None,
          'color': None, 'interior': None }
 car_data = []
 predictedPrice = 0
-# File for model
+# file for model
 filename = "my_model.pickle"
 # xAxis is a chosen by user independent feature to be displayed on plot
 xAxis = 'odometer'
@@ -66,15 +66,60 @@ class MainWindow(QMainWindow):
 
     def loadData(self):
         global car_data
+        
         self.car_data = pd.read_csv('car_prices.csv', on_bad_lines='skip')
         self.car_data = self.car_data.dropna(how='any')
         self.car_data.drop(columns=['vin', 'seller', 'saledate','mmr', 'trim'], inplace=True)
 
+        # replace transmission with numbers
+        self.car_data['transmission'].replace(['manual', 'automatic'],
+                                [0, 1], inplace=True)
+        
+        # make every text occurance in lower-case
+        for col in self.car_data.columns:
+            if type(self.car_data[col][0]) is str:
+                self.car_data[col] = self.car_data[col].apply(lambda x: x.lower())
+        
         # assign to global variable
         car_data = self.car_data
 
+        df_train = copy.deepcopy(car_data)
+
+        cols = np.array(car_data.columns[car_data.dtypes != object])
+        for i in df_train.columns:
+            if i not in cols:
+                df_train[i] = df_train[i].map(str)
+        df_train.drop(columns=cols, inplace=True)
+
+        # build dictionary function
+        cols = np.array(car_data.columns[car_data.dtypes != object])
+        self.d = defaultdict(LabelEncoder)
+
+        # only for categorical columns apply dictionary by calling fit_transform 
+        df_train = df_train.apply(lambda x: self.d[x.name].fit_transform(x))
+        
+        df_train[cols] = car_data[cols]
+
+        ftrain = ['year', 'make', 'model', 'body', 'transmission', 
+                'state', 'condition', 'odometer', 'color', 'interior', 'sellingprice']
+
+        self.lab_enc = preprocessing.LabelEncoder()
+
+        def define_data():
+            # define car dataset
+            car_data2 = df_train[ftrain]
+            X = car_data2.drop(columns=['sellingprice']).values
+            y0 = car_data2['sellingprice'].values
+            y = self.lab_enc.fit_transform(y0)
+            return X, y
+        
+        X, y = define_data()
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.25)
+
         # load model
         self.model = pickle.load(open(filename, "rb"))
+
+        print(self.model.score(X_test, y_test))
 
     def showPrediction(self) :
         global xAxis, predictedPrice, car_data, car
@@ -121,10 +166,10 @@ class MainWindow(QMainWindow):
     def plotPrice(self):
         global xAxis, predictedPrice, car_data, car
         
-        # Clear the chart
+        # clear the chart
         self.chart.ax.cla()
 
-        # Get x, y values for plot
+        # get x, y values for plot
         if xAxis == 'model':
             plot_df = car_data.loc[car_data['make'] == car['make']].loc[:, ('sellingprice', xAxis)]
         else:
@@ -132,7 +177,7 @@ class MainWindow(QMainWindow):
         
         plot_df.sort_values(by=[xAxis], ascending=True, inplace=True)
 
-        # Appropriate range for different features
+        # appropriate range for different features
         if isinstance(car_data[xAxis][0], str) or xAxis != "odometer":
             x_range = plot_df[xAxis].unique()
         else:
@@ -142,7 +187,7 @@ class MainWindow(QMainWindow):
 
             x_range = plot_df[xAxis].unique()[int(min_val)::int(interval_step)]
 
-        # Get average price for each x
+        # get average price for each x
         x_vals = []
         y_vals = []
         
@@ -153,18 +198,18 @@ class MainWindow(QMainWindow):
                 x_vals.append(elem)
                 y_vals.append(sum(price_list) // len(price_list))
             
-        # Make dictionary, keys will become dataframe column names
+        # make dictionary, keys will become dataframe column names
         intermediate_dictionary = {'sellingprice':y_vals, xAxis:x_vals}
 
-        # Convert dictionary to Pandas dataframe
+        # convert dictionary to Pandas dataframe
         plot_df = pd.DataFrame(intermediate_dictionary)
         plot_df.reset_index(drop = True, inplace = True)
         if isinstance(car_data[xAxis][0], str):
             plot_df.set_index(xAxis).plot(kind='bar', ax=self.chart.ax)
         else:
-            plot_df.set_index(xAxis).plot(ax=self.chart.ax)
+            plot_df.set_index(xAxis).plot(ax=self.chart.ax, marker=".", markersize=3)
 
-        # Plot our predicted price with marker
+        # plot our predicted price with marker
         if car[xAxis] and predictedPrice:
             self.chart.ax.plot(car[xAxis], predictedPrice, marker="^", linestyle="", alpha=0.8, c='red')
         
@@ -174,37 +219,37 @@ class MainWindow(QMainWindow):
         global car_data
         global xAxis, predictedPrice
 
-        # Auto complete for QLineEdit()
+        # auto complete for QLineEdit()
         self.unique_manuf = car_data['make'].unique()
         completer = QCompleter(self.unique_manuf)
         completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
 
-        # Input field for Manufacturer with auto completion
+        # input field for Manufacturer with auto completion
         self.inputMake = QLineEdit()
         self.tabLblMake = QLabel("Manufacturer")
         self.inputMake.setCompleter(completer)
         self.inputMake.textChanged.connect(self.updateMake)
-        #self.tabLblMake.setAlignment(Qt.AlignmentFlag.AlignTop)
+        # self.tabLblMake.setAlignment(Qt.AlignmentFlag.AlignTop)
 
-        # Combobox for model depending on manufacturer
+        # combobox for model depending on manufacturer
         self.inputModel = QComboBox()
         self.tabLblModel = QLabel("Model")
         self.inputModel.setPlaceholderText("Select Model...")
         self.inputModel.setEnabled(False)
         self.inputModel.currentTextChanged.connect(self.updateModel)
 
-        # Combobox for body 
+        # combobox for body 
         self.inputBody = QComboBox()
         self.tabLblBody = QLabel("Body")
         self.inputBody.setPlaceholderText("Select Body...")
         self.inputBody.addItems(car_data['body'].unique())
         self.inputBody.currentTextChanged.connect(self.updateBody)
 
-        # Checkbox for Transmission (Auto - checked, Manual - unchecked)
+        # checkbox for Transmission (Auto - checked, Manual - unchecked)
         self.inputTransmission = QCheckBox("Transmission Auto")
         self.inputTransmission.stateChanged.connect(self.updateTransmission)
 
-        # Input field for Condition (from 1.0 to 5.0, step = 0.1)
+        # input field for Condition (from 1.0 to 5.0, step = 0.1)
         self.inputCondition = QDoubleSpinBox()
         self.tabLblCondition = QLabel("Condition")
         self.inputCondition.setDecimals(1)
@@ -213,7 +258,7 @@ class MainWindow(QMainWindow):
         self.inputCondition.setValue(2.5)
         self.inputCondition.valueChanged.connect(self.updateCondition)
 
-        # Slider for Odometer (from 0 to max value in dataset)
+        # slider for Odometer (from 0 to max value in dataset)
         max_odometer = int(max(car_data['odometer']))
         self.inputOdometer = QSlider(Qt.Orientation.Horizontal)
         self.tabLblOdometer = QLabel("Odometer")
@@ -221,35 +266,35 @@ class MainWindow(QMainWindow):
         self.inputOdometer.setMaximum(max_odometer // 3)
         self.inputOdometer.valueChanged.connect(self.updateOdometer)
 
-        # Combobox for choosing x-axis on the plot
+        # combobox for choosing x-axis on the plot
         self.inputXaxis = QComboBox()
         self.lblxComboBox = QLabel("X-axis feature:")
         self.inputXaxis.setPlaceholderText("Select X-axis...")
         self.inputXaxis.addItems(car_data.columns.drop('sellingprice')) 
         self.inputXaxis.currentTextChanged.connect(self.updateX)
 
-        # Combobox for state
+        # combobox for state
         self.inputState = QComboBox()
         self.tabLblState = QLabel("State")
         self.inputState.setPlaceholderText("Select State...")
         self.inputState.addItems(car_data['state'].unique())
         self.inputState.currentTextChanged.connect(self.updateState)
 
-        # Combobox for color
+        # combobox for color
         self.inputColor = QComboBox()
         self.tabLblColor = QLabel("Color")
         self.inputColor.setPlaceholderText("Select Color...")
         self.inputColor.addItems(car_data['color'].unique())
         self.inputColor.currentTextChanged.connect(self.updateColor)
 
-        # Combobox for interior color
+        # combobox for interior color
         self.inputInterior = QComboBox()
         self.tabLblInterior = QLabel("Interior")  
         self.inputInterior.setPlaceholderText("Select Interior...")
         self.inputInterior.addItems(car_data['interior'].unique())
         self.inputInterior.currentTextChanged.connect(self.updateInterior)
 
-        # Input field for Year
+        # input field for Year
         min_year = min(car_data['year'])
         max_year = max(car_data['year'])
         self.inputYear = QSpinBox()
@@ -261,7 +306,7 @@ class MainWindow(QMainWindow):
 
         self.tabLay1, self.tabLay2 = QVBoxLayout(), QVBoxLayout()
 
-        # Tab 1 widgets
+        # tab 1 widgets
         self.tabLay1.addWidget(self.tabLblMake)
         self.tabLay1.addWidget(self.inputMake)
         self.tabLay1.addSpacing(15)
@@ -287,7 +332,7 @@ class MainWindow(QMainWindow):
         self.tabLay1.addStretch()
 
         
-        # Tab 2 widgets
+        # tab 2 widgets
         self.tabLay2.addWidget(self.tabLblState)
         self.tabLay2.addWidget(self.inputState)
         self.tabLay2.addSpacing(15)
@@ -310,7 +355,7 @@ class MainWindow(QMainWindow):
 
 
 
-        # Tabs for TabWidget
+        # tabs for TabWidget
         self.tab1, self.tab2 = QWidget(), QWidget()
 
         self.tab1.setLayout(self.tabLay1)
@@ -328,14 +373,14 @@ class MainWindow(QMainWindow):
         self.outerTabWidLay.addWidget(self.tabWidget)
         self.innerDockWidget.setLayout(self.outerTabWidLay)
 
-        # DockWidget
+        # dockWidget
         self.dockWidget = QDockWidget("Dock")
         self.dockWidget.setFeatures(QDockWidget.DockWidgetFeature.NoDockWidgetFeatures)
         self.dockWidget.setWidget(self.innerDockWidget)
         # self.dockWidget.setStyleSheet("border-left: 1px solid grey; border-right: 1px solid grey;")
 
 
-        # Information labels 
+        # information labels 
         self.lblMake = QLabel('Manufacturer: -')
         self.lblModel = QLabel('Model: -')
         self.lblBody = QLabel('Body: -')
@@ -372,7 +417,7 @@ class MainWindow(QMainWindow):
         self.colLay2.addWidget(self.lblCondition)
 
         
-        # Predict push-button
+        # predict push-button
         self.btn = QPushButton("Predict")
         self.btn.setMinimumHeight(int(self.btn.height() / 10))
         self.btn.clicked.connect(self.showPrediction)
@@ -400,29 +445,29 @@ class MainWindow(QMainWindow):
         self.centLay.addWidget(self.chart, stretch= 4)
         self.centLay.addLayout(self.outerLblLay, stretch= 1)
         self.centWidget.setLayout(self.centLay)
-        #centWidget.setStyleSheet("border-top: 1px solid grey;") #background-color: white;")
+        # centWidget.setStyleSheet("border-top: 1px solid grey;") #background-color: white;")
 
         self.setCentralWidget(self.centWidget)
         self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.dockWidget)
 
-        # Exit application action
+        # exit application action
         exitAct = QAction(QIcon('exit.png'), '&Exit', self)
         exitAct.setShortcut('Ctrl+Q')
         exitAct.setStatusTip('Exit application')
         exitAct.triggered.connect(QApplication.instance().quit)
 
-        # Save plot action
+        # save plot action
         savePlt = QAction(QIcon('save.png'), '&Save', self)
         savePlt.setShortcut('Ctrl+S')
         savePlt.setStatusTip('Save Plot')
         savePlt.triggered.connect(self.savePlot)
 
-        #self.statusBar = QStatusBar()
-        #self.setStatusBar(self.statusBar)
+        # self.statusBar = QStatusBar()
+        # self.setStatusBar(self.statusBar)
         self.statusBar().messageChanged.connect(self.updateStatus)
         self.statusBar().hide()
 
-        # Menubar
+        # menubar
         menubar = self.menuBar()
         fileMenu = menubar.addMenu('&File')
         fileMenu.addAction(exitAct)
