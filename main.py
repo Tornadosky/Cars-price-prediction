@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import warnings
 import copy
-import pickle
+import joblib
 warnings.filterwarnings("ignore")
 
 from sklearn import preprocessing
@@ -16,8 +16,8 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import LabelEncoder
 from collections import defaultdict
 from PyQt6.QtWidgets import (QMainWindow, QApplication, QWidget, QLabel, QLineEdit, QSpinBox,
- QCheckBox, QComboBox, QSlider, QSpinBox, QDoubleSpinBox, QDockWidget, QListWidget, QVBoxLayout, QHBoxLayout,
- QTabWidget, QFrame, QPushButton, QCompleter, QStatusBar)
+ QCheckBox, QComboBox, QSlider, QSpinBox, QDoubleSpinBox, QDockWidget, QVBoxLayout, QHBoxLayout,
+ QTabWidget, QFrame, QPushButton, QCompleter)
 from PyQt6.QtGui import QIcon, QAction, QPixmap
 from PyQt6.QtCore import Qt
 
@@ -37,7 +37,7 @@ xAxis = 'odometer'
 
 IMAGES_PATH = Path() / "images" 
 IMAGES_PATH.mkdir(parents=True, exist_ok=True)
-def save_fig(fig, fig_id, tight_layout=True, fig_extension="png", resolution=300):
+def saveFig(fig, fig_id, tight_layout=True, fig_extension="png", resolution=300):
     path = IMAGES_PATH / f"{fig_id}.{fig_extension}"
     if tight_layout:
         fig.tight_layout()
@@ -45,11 +45,31 @@ def save_fig(fig, fig_id, tight_layout=True, fig_extension="png", resolution=300
 
 
 class Canvas(FigureCanvas):
-    def __init__(self, parent):
+    def __init__(self, parent=None):
         self.fig, self.ax = plt.subplots(figsize=(5, 4), dpi=80)
         super().__init__(self.fig)
-        self.setParent(parent)
 
+class SecondWindow(QMainWindow):
+
+    def __init__(self):
+        super().__init__()
+
+        global car_data
+
+        self.setWindowTitle('Histograms')
+        self.setGeometry(310, 110, 750, 450)
+        
+        secWindLay = QHBoxLayout()
+        secWindWid = QWidget()
+
+        self.chart2 = Canvas(self)
+        car_data.hist(ax=self.chart2.ax, bins=50, figsize=(20,15))
+
+        secWindLay.addWidget(self.chart2)
+        secWindWid.setLayout(secWindLay)
+        self.setCentralWidget(secWindWid)
+        
+        saveFig(self.chart2.fig,"histogram", tight_layout=True, fig_extension="png", resolution=300)
 
 class MainWindow(QMainWindow):
 
@@ -117,7 +137,7 @@ class MainWindow(QMainWindow):
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.25)
 
         # load model
-        self.model = pickle.load(open(filename, "rb"))
+        self.model = joblib.load('my_model.pkl')
 
         print(self.model.score(X_test, y_test))
 
@@ -212,12 +232,21 @@ class MainWindow(QMainWindow):
         # plot our predicted price with marker
         if car[xAxis] and predictedPrice:
             self.chart.ax.plot(car[xAxis], predictedPrice, marker="^", linestyle="", alpha=0.8, c='red')
-        
+      
+        self.chart.fig.tight_layout()
         self.chart.draw()
         
+    def showSecondWindow(self):
+        if self.win2.isHidden(): 
+            self.win2.show()
+
     def initUI(self):
         global car_data
         global xAxis, predictedPrice
+
+        self.win2 = SecondWindow()
+
+        self.win2 = SecondWindow()
 
         # auto complete for QLineEdit()
         self.unique_manuf = car_data['make'].unique()
@@ -242,7 +271,7 @@ class MainWindow(QMainWindow):
         self.inputBody = QComboBox()
         self.tabLblBody = QLabel("Body")
         self.inputBody.setPlaceholderText("Select Body...")
-        self.inputBody.addItems(car_data['body'].unique())
+        self.inputBody.addItems(np.sort(car_data['body'].unique()))
         self.inputBody.currentTextChanged.connect(self.updateBody)
 
         # checkbox for Transmission (Auto - checked, Manual - unchecked)
@@ -270,28 +299,29 @@ class MainWindow(QMainWindow):
         self.inputXaxis = QComboBox()
         self.lblxComboBox = QLabel("X-axis feature:")
         self.inputXaxis.setPlaceholderText("Select X-axis...")
-        self.inputXaxis.addItems(car_data.columns.drop('sellingprice')) 
+        self.inputXaxis.addItems(np.sort(car_data.columns.drop('sellingprice'))) 
+        self.inputXaxis.setItemText(self.inputXaxis.findText('make'), 'manufacturer')
         self.inputXaxis.currentTextChanged.connect(self.updateX)
 
         # combobox for state
         self.inputState = QComboBox()
         self.tabLblState = QLabel("State")
         self.inputState.setPlaceholderText("Select State...")
-        self.inputState.addItems(car_data['state'].unique())
+        self.inputState.addItems(np.sort(car_data['state'].unique()))
         self.inputState.currentTextChanged.connect(self.updateState)
 
         # combobox for color
         self.inputColor = QComboBox()
         self.tabLblColor = QLabel("Color")
         self.inputColor.setPlaceholderText("Select Color...")
-        self.inputColor.addItems(car_data['color'].unique())
+        self.inputColor.addItems(np.sort(car_data['color'].unique()))
         self.inputColor.currentTextChanged.connect(self.updateColor)
 
         # combobox for interior color
         self.inputInterior = QComboBox()
         self.tabLblInterior = QLabel("Interior")  
         self.inputInterior.setPlaceholderText("Select Interior...")
-        self.inputInterior.addItems(car_data['interior'].unique())
+        self.inputInterior.addItems(np.sort(car_data['interior'].unique()))
         self.inputInterior.currentTextChanged.connect(self.updateInterior)
 
         # input field for Year
@@ -462,6 +492,18 @@ class MainWindow(QMainWindow):
         savePlt.setStatusTip('Save Plot')
         savePlt.triggered.connect(self.savePlot)
 
+        # Show histograms in win2 action
+        showHist = QAction(QIcon("graph.png"), "&Histogram", self)
+        showHist.setStatusTip("Show histograms")
+        showHist.triggered.connect(self.showSecondWindow)
+
+
+        # Show histograms in win2 action
+        showHist = QAction(QIcon("graph.png"), "&Histogram", self)
+        showHist.setStatusTip("Show histograms")
+        showHist.triggered.connect(self.showSecondWindow)
+
+
         # self.statusBar = QStatusBar()
         # self.setStatusBar(self.statusBar)
         self.statusBar().messageChanged.connect(self.updateStatus)
@@ -472,10 +514,11 @@ class MainWindow(QMainWindow):
         fileMenu = menubar.addMenu('&File')
         fileMenu.addAction(exitAct)
         fileMenu.addAction(savePlt)
+        fileMenu.addAction(showHist)
     
     def savePlot(self):
         global xAxis, predictedPrice
-        save_fig(self.chart.figure, f"prediction_plot_{xAxis}_{predictedPrice}", tight_layout=True, fig_extension="png", resolution=300)
+        saveFig(self.chart.fig, f"prediction_plot_{xAxis}_{predictedPrice}", tight_layout=True, fig_extension="png", resolution=300)
 
     def updateStatus(self):
         val = self.statusBar().currentMessage()
@@ -508,10 +551,13 @@ class MainWindow(QMainWindow):
             val = None
         if val:
             self.inputModel.clear()
-            self.inputModel.addItems(car_data.loc[car_data['make'] == val]['model'].unique())
+            self.inputModel.addItems(np.sort(car_data.loc[car_data['make'] == val]['model'].unique()))
             self.inputModel.setEnabled(True)
             car['make'] = val
-            self.lblMake.setText("Manufacturer: " + val.capitalize())
+            if val == 'bmw':
+                self.lblMake.setText("Manufacturer: " + val.upper())
+            else:
+                self.lblMake.setText("Manufacturer: " + val.capitalize())
             car['model'] = None
         else:
             self.inputModel.setEnabled(False)
@@ -542,17 +588,17 @@ class MainWindow(QMainWindow):
     def updateState(self):
         global car
         car['state'] = self.inputState.currentText()
-        self.lblState.setText("State: " + car['state'])
+        self.lblState.setText("State: " + car['state'].upper())
 
     def updateColor(self):
         global car
         car['color'] = self.inputColor.currentText()
-        self.lblColor.setText("Color: " + car['color'])
+        self.lblColor.setText("Color: " + car['color'].capitalize())
     
     def updateInterior(self):
         global car
         car['interior'] = self.inputInterior.currentText()
-        self.lblInterior.setText("Interior: " + car['interior'])
+        self.lblInterior.setText("Interior: " + car['interior'].capitalize())
     
     def updateYear(self):
         global car

@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import warnings
 import copy
-import pickle
+import joblib
 
 warnings.filterwarnings("ignore")
 
@@ -12,8 +12,6 @@ from sklearn import preprocessing
 from sklearn.model_selection import train_test_split
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.ensemble import RandomForestRegressor
-
-filename = "my_model.pickle"
 
 car_data = pd.read_csv('car_prices.csv', on_bad_lines='skip')
 print("row number: ", len(car_data))
@@ -86,4 +84,4 @@ model.fit(X_train,y_train)
 print(model.score(X_test, y_test))
 
 # save model
-pickle.dump(model, open(filename, "wb"))
+joblib.dump(model, 'my_model.pkl', compress=3)
