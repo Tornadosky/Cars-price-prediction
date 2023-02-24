@@ -1,37 +1,34 @@
 import sys
 from pathlib import Path
-import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import warnings
 import copy
-import joblib
+import joblib # for loading the model
 warnings.filterwarnings("ignore")
 
 from sklearn import preprocessing
 from sklearn.model_selection import train_test_split
-from sklearn.tree import DecisionTreeRegressor
-from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import LabelEncoder
 from collections import defaultdict
 from PyQt6.QtWidgets import (QMainWindow, QApplication, QWidget, QLabel, QLineEdit, QSpinBox,
  QCheckBox, QComboBox, QSlider, QSpinBox, QDoubleSpinBox, QDockWidget, QVBoxLayout, QHBoxLayout,
- QTabWidget, QFrame, QPushButton, QCompleter)
-from PyQt6.QtGui import QIcon, QAction, QPixmap
+ QTabWidget, QPushButton, QCompleter)
+from PyQt6 import QtGui
+from PyQt6.QtGui import QIcon, QAction
 from PyQt6.QtCore import Qt
 
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 
 # initial global variables
+
 # car dict for user's input 
 car = { 'year': None, 'make': None, 'model': None, 'body': None,
          'transmission': 0, 'state': None, 'condition': None, 'odometer': None,
          'color': None, 'interior': None }
 car_data = []
 predictedPrice = 0
-# file for model
-filename = "my_model.pickle"
 # xAxis is a chosen by user independent feature to be displayed on plot
 xAxis = 'odometer'
 
@@ -153,6 +150,7 @@ class MainWindow(QMainWindow):
 
         new_row_vals = [i[0] for i in list(new_row.values())]
 
+        # return Invalid input in case of none values
         if None in new_row_vals:
             self.statusBar().setStyleSheet("background-color : red")
             self.statusBar().showMessage("Invalid Input!")
@@ -176,8 +174,10 @@ class MainWindow(QMainWindow):
 
         my_car = df3[ftrain]
         
-        transformed_pred = [int(self.model.predict(my_car)[0])]    
+        transformed_pred = [int(self.model.predict(my_car)[0])]
+
         predictedPrice = self.lab_enc.inverse_transform(transformed_pred)[0]
+
         self.statusBar().showMessage(f"Predicted car price: {predictedPrice} $")
         print(f"Predicted car price: {predictedPrice} $")
 
@@ -206,11 +206,13 @@ class MainWindow(QMainWindow):
             interval_step = (max_val - min_val) // chunk_size
 
             x_range = plot_df[xAxis].unique()[int(min_val)::int(interval_step)]
-
-        # get average price for each x
+        
+        # x - feature (values of xAxis)
+        # y - average price of specific x
         x_vals = []
         y_vals = []
         
+        # get average price for each x
         for elem in x_range:
             price_list = plot_df.loc[plot_df[xAxis] == elem]['sellingprice'].values
 
@@ -224,14 +226,22 @@ class MainWindow(QMainWindow):
         # convert dictionary to Pandas dataframe
         plot_df = pd.DataFrame(intermediate_dictionary)
         plot_df.reset_index(drop = True, inplace = True)
+
+        # if x values are str plot bars, else dots
         if isinstance(car_data[xAxis][0], str):
-            plot_df.set_index(xAxis).plot(kind='bar', ax=self.chart.ax)
+            plot_df.set_index(xAxis).plot(ax=self.chart.ax, kind='bar')
         else:
             plot_df.set_index(xAxis).plot(ax=self.chart.ax, marker=".", markersize=3)
-
+        
         # plot our predicted price with marker
         if car[xAxis] and predictedPrice:
-            self.chart.ax.plot(car[xAxis], predictedPrice, marker="^", linestyle="", alpha=0.8, c='red')
+            # check if car[xAxis] is str, if yes find index otherwise
+            # marker is to the left for xAxises which are str
+            x_value = car[xAxis]
+            if isinstance(x_value, str):
+                x_value = x_vals.index(x_value)
+            # plot the marker
+            self.chart.ax.plot(x_value, predictedPrice, marker="^", linestyle="", alpha=0.8, c='red')
       
         self.chart.fig.tight_layout()
         self.chart.draw()
@@ -246,7 +256,7 @@ class MainWindow(QMainWindow):
 
         self.win2 = SecondWindow()
 
-        self.win2 = SecondWindow()
+        QApplication.setWindowIcon(QtGui.QIcon('logo.png'))
 
         # auto complete for QLineEdit()
         self.unique_manuf = car_data['make'].unique()
@@ -305,8 +315,8 @@ class MainWindow(QMainWindow):
 
         # combobox for state
         self.inputState = QComboBox()
-        self.tabLblState = QLabel("State")
-        self.inputState.setPlaceholderText("Select State...")
+        self.tabLblState = QLabel("US State")
+        self.inputState.setPlaceholderText("Select US State...")
         self.inputState.addItems(np.sort(car_data['state'].unique()))
         self.inputState.currentTextChanged.connect(self.updateState)
 
@@ -331,6 +341,7 @@ class MainWindow(QMainWindow):
         self.tabLblYear = QLabel("Year")
         self.inputYear.setMinimum(min_year)
         self.inputYear.setMaximum(max_year)
+        self.inputYear.setValue(2008)
         self.inputYear.valueChanged.connect(self.updateYear)
         
 
@@ -393,8 +404,8 @@ class MainWindow(QMainWindow):
 
 
         self.tabWidget = QTabWidget()
-        self.tabWidget.addTab(self.tab1, 'One')
-        self.tabWidget.addTab(self.tab2, 'Two')
+        self.tabWidget.addTab(self.tab1, 'Tab 1')
+        self.tabWidget.addTab(self.tab2, 'Tab 2')
 
 
         self.innerDockWidget = QWidget()
@@ -419,7 +430,7 @@ class MainWindow(QMainWindow):
         self.lblYear = QLabel('Year: -')
         self.lblCondition = QLabel('Condition: -')
 
-        self.lblState = QLabel('State: -')
+        self.lblState = QLabel('US State: -')
         self.lblColor = QLabel('Color: -')
         self.lblInterior = QLabel('Interior: -')
         
@@ -475,7 +486,6 @@ class MainWindow(QMainWindow):
         self.centLay.addWidget(self.chart, stretch= 4)
         self.centLay.addLayout(self.outerLblLay, stretch= 1)
         self.centWidget.setLayout(self.centLay)
-        # centWidget.setStyleSheet("border-top: 1px solid grey;") #background-color: white;")
 
         self.setCentralWidget(self.centWidget)
         self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.dockWidget)
@@ -497,15 +507,12 @@ class MainWindow(QMainWindow):
         showHist.setStatusTip("Show histograms")
         showHist.triggered.connect(self.showSecondWindow)
 
-
         # Show histograms in win2 action
         showHist = QAction(QIcon("graph.png"), "&Histogram", self)
         showHist.setStatusTip("Show histograms")
         showHist.triggered.connect(self.showSecondWindow)
 
-
-        # self.statusBar = QStatusBar()
-        # self.setStatusBar(self.statusBar)
+        # update status bar on change
         self.statusBar().messageChanged.connect(self.updateStatus)
         self.statusBar().hide()
 
@@ -516,10 +523,12 @@ class MainWindow(QMainWindow):
         fileMenu.addAction(savePlt)
         fileMenu.addAction(showHist)
     
+    # save figures to images/ with unique names
     def savePlot(self):
         global xAxis, predictedPrice
         saveFig(self.chart.fig, f"prediction_plot_{xAxis}_{predictedPrice}", tight_layout=True, fig_extension="png", resolution=300)
 
+    # update status bar
     def updateStatus(self):
         val = self.statusBar().currentMessage()
         if not val:
@@ -544,6 +553,8 @@ class MainWindow(QMainWindow):
         global xAxis
         xAxis = self.inputXaxis.currentText()
     
+    # update manufacturer
+    # when chosen enable ComboBox for models
     def updateMake(self):
         global car, car_data
         val = self.inputMake.text().lower()
@@ -588,7 +599,7 @@ class MainWindow(QMainWindow):
     def updateState(self):
         global car
         car['state'] = self.inputState.currentText()
-        self.lblState.setText("State: " + car['state'].upper())
+        self.lblState.setText("US State: " + car['state'].upper())
 
     def updateColor(self):
         global car
