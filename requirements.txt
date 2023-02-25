@@ -1,0 +1,6 @@
+pyqt6
+matplotlib
+numpy
+pandas
+scikit-learn
+joblib
