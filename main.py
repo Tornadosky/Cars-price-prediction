@@ -32,6 +32,7 @@ predictedPrice = 0
 # xAxis is a chosen by user independent feature to be displayed on plot
 xAxis = 'odometer'
 
+# path for saving images
 IMAGES_PATH = Path() / "images" 
 IMAGES_PATH.mkdir(parents=True, exist_ok=True)
 def saveFig(fig, fig_id, tight_layout=True, fig_extension="png", resolution=300):
@@ -198,6 +199,7 @@ class MainWindow(QMainWindow):
         plot_df.sort_values(by=[xAxis], ascending=True, inplace=True)
 
         # appropriate range for different features
+        # e.g. for odometer not to have too many unique vals
         if isinstance(car_data[xAxis][0], str) or xAxis != "odometer":
             x_range = plot_df[xAxis].unique()
         else:
@@ -265,21 +267,20 @@ class MainWindow(QMainWindow):
 
         # input field for Manufacturer with auto completion
         self.inputMake = QLineEdit()
-        self.tabLblMake = QLabel("Manufacturer")
+        tabLblMake = QLabel("Manufacturer")
         self.inputMake.setCompleter(completer)
         self.inputMake.textChanged.connect(self.updateMake)
-        # self.tabLblMake.setAlignment(Qt.AlignmentFlag.AlignTop)
 
         # combobox for model depending on manufacturer
         self.inputModel = QComboBox()
-        self.tabLblModel = QLabel("Model")
+        tabLblModel = QLabel("Model")
         self.inputModel.setPlaceholderText("Select Model...")
         self.inputModel.setEnabled(False)
         self.inputModel.currentTextChanged.connect(self.updateModel)
 
         # combobox for body 
         self.inputBody = QComboBox()
-        self.tabLblBody = QLabel("Body")
+        tabLblBody = QLabel("Body")
         self.inputBody.setPlaceholderText("Select Body...")
         self.inputBody.addItems(np.sort(car_data['body'].unique()))
         self.inputBody.currentTextChanged.connect(self.updateBody)
@@ -290,7 +291,7 @@ class MainWindow(QMainWindow):
 
         # input field for Condition (from 1.0 to 5.0, step = 0.1)
         self.inputCondition = QDoubleSpinBox()
-        self.tabLblCondition = QLabel("Condition")
+        tabLblCondition = QLabel("Condition")
         self.inputCondition.setDecimals(1)
         self.inputCondition.setRange(1.0, 5.0)
         self.inputCondition.setSingleStep(0.1)
@@ -300,36 +301,35 @@ class MainWindow(QMainWindow):
         # slider for Odometer (from 0 to max value in dataset)
         max_odometer = int(max(car_data['odometer']))
         self.inputOdometer = QSlider(Qt.Orientation.Horizontal)
-        self.tabLblOdometer = QLabel("Odometer")
+        tabLblOdometer = QLabel("Odometer")
         self.inputOdometer.setMinimum(0)
         self.inputOdometer.setMaximum(max_odometer // 3)
         self.inputOdometer.valueChanged.connect(self.updateOdometer)
 
         # combobox for choosing x-axis on the plot
         self.inputXaxis = QComboBox()
-        self.lblxComboBox = QLabel("X-axis feature:")
+        lblxComboBox = QLabel("X-axis feature:")
         self.inputXaxis.setPlaceholderText("Select X-axis...")
-        self.inputXaxis.addItems(np.sort(car_data.columns.drop('sellingprice'))) 
-        self.inputXaxis.setItemText(self.inputXaxis.findText('make'), 'manufacturer')
+        self.inputXaxis.addItems(np.sort(car_data.columns.drop('sellingprice')))
         self.inputXaxis.currentTextChanged.connect(self.updateX)
 
         # combobox for state
         self.inputState = QComboBox()
-        self.tabLblState = QLabel("US State")
+        tabLblState = QLabel("US State")
         self.inputState.setPlaceholderText("Select US State...")
         self.inputState.addItems(np.sort(car_data['state'].unique()))
         self.inputState.currentTextChanged.connect(self.updateState)
 
         # combobox for color
         self.inputColor = QComboBox()
-        self.tabLblColor = QLabel("Color")
+        tabLblColor = QLabel("Color")
         self.inputColor.setPlaceholderText("Select Color...")
         self.inputColor.addItems(np.sort(car_data['color'].unique()))
         self.inputColor.currentTextChanged.connect(self.updateColor)
 
         # combobox for interior color
         self.inputInterior = QComboBox()
-        self.tabLblInterior = QLabel("Interior")  
+        tabLblInterior = QLabel("Interior")  
         self.inputInterior.setPlaceholderText("Select Interior...")
         self.inputInterior.addItems(np.sort(car_data['interior'].unique()))
         self.inputInterior.currentTextChanged.connect(self.updateInterior)
@@ -338,87 +338,86 @@ class MainWindow(QMainWindow):
         min_year = min(car_data['year'])
         max_year = max(car_data['year'])
         self.inputYear = QSpinBox()
-        self.tabLblYear = QLabel("Year")
+        tabLblYear = QLabel("Year")
         self.inputYear.setMinimum(min_year)
         self.inputYear.setMaximum(max_year)
         self.inputYear.setValue(2008)
         self.inputYear.valueChanged.connect(self.updateYear)
         
 
-        self.tabLay1, self.tabLay2 = QVBoxLayout(), QVBoxLayout()
+        tabLay1, tabLay2 = QVBoxLayout(), QVBoxLayout()
 
         # tab 1 widgets
-        self.tabLay1.addWidget(self.tabLblMake)
-        self.tabLay1.addWidget(self.inputMake)
-        self.tabLay1.addSpacing(15)
+        tabLay1.addWidget(tabLblMake)
+        tabLay1.addWidget(self.inputMake)
+        tabLay1.addSpacing(15)
 
-        self.tabLay1.addWidget(self.tabLblModel)
-        self.tabLay1.addWidget(self.inputModel)
-        self.tabLay1.addSpacing(15)
+        tabLay1.addWidget(tabLblModel)
+        tabLay1.addWidget(self.inputModel)
+        tabLay1.addSpacing(15)
 
-        self.tabLay1.addWidget(self.tabLblBody)
-        self.tabLay1.addWidget(self.inputBody)
-        self.tabLay1.addSpacing(15)
+        tabLay1.addWidget(tabLblBody)
+        tabLay1.addWidget(self.inputBody)
+        tabLay1.addSpacing(15)
         
-        self.tabLay1.addWidget(self.tabLblOdometer)
-        self.tabLay1.addWidget(self.inputOdometer)
-        self.tabLay1.addSpacing(15)
+        tabLay1.addWidget(tabLblOdometer)
+        tabLay1.addWidget(self.inputOdometer)
+        tabLay1.addSpacing(15)
         
-        self.tabLay1.addWidget(self.inputTransmission)
-        self.tabLay1.addSpacing(20)
+        tabLay1.addWidget(self.inputTransmission)
+        tabLay1.addSpacing(20)
 
-        self.tabLay1.addWidget(self.lblxComboBox)
-        self.tabLay1.addWidget(self.inputXaxis)
+        tabLay1.addWidget(lblxComboBox)
+        tabLay1.addWidget(self.inputXaxis)
 
-        self.tabLay1.addStretch()
+        tabLay1.addStretch()
 
         
         # tab 2 widgets
-        self.tabLay2.addWidget(self.tabLblState)
-        self.tabLay2.addWidget(self.inputState)
-        self.tabLay2.addSpacing(15)
+        tabLay2.addWidget(tabLblState)
+        tabLay2.addWidget(self.inputState)
+        tabLay2.addSpacing(15)
 
-        self.tabLay2.addWidget(self.tabLblColor)
-        self.tabLay2.addWidget(self.inputColor)
-        self.tabLay2.addSpacing(15)
+        tabLay2.addWidget(tabLblColor)
+        tabLay2.addWidget(self.inputColor)
+        tabLay2.addSpacing(15)
 
-        self.tabLay2.addWidget(self.tabLblInterior)
-        self.tabLay2.addWidget(self.inputInterior)
-        self.tabLay2.addSpacing(15)
+        tabLay2.addWidget(tabLblInterior)
+        tabLay2.addWidget(self.inputInterior)
+        tabLay2.addSpacing(15)
 
-        self.tabLay2.addWidget(self.tabLblCondition)
-        self.tabLay2.addWidget(self.inputCondition)
-        self.tabLay2.addSpacing(15)
+        tabLay2.addWidget(tabLblCondition)
+        tabLay2.addWidget(self.inputCondition)
+        tabLay2.addSpacing(15)
 
-        self.tabLay2.addWidget(self.tabLblYear)
-        self.tabLay2.addWidget(self.inputYear)
-        self.tabLay2.addSpacing(15)
+        tabLay2.addWidget(tabLblYear)
+        tabLay2.addWidget(self.inputYear)
+        tabLay2.addSpacing(15)
 
 
 
         # tabs for TabWidget
-        self.tab1, self.tab2 = QWidget(), QWidget()
+        tab1, tab2 = QWidget(), QWidget()
 
-        self.tab1.setLayout(self.tabLay1)
-        self.tab2.setLayout(self.tabLay2)
-
-
-        self.tabWidget = QTabWidget()
-        self.tabWidget.addTab(self.tab1, 'Tab 1')
-        self.tabWidget.addTab(self.tab2, 'Tab 2')
+        tab1.setLayout(tabLay1)
+        tab2.setLayout(tabLay2)
 
 
-        self.innerDockWidget = QWidget()
+        tabWidget = QTabWidget()
+        tabWidget.addTab(tab1, 'Tab 1')
+        tabWidget.addTab(tab2, 'Tab 2')
 
-        self.outerTabWidLay = QVBoxLayout()
-        self.outerTabWidLay.addWidget(self.tabWidget)
-        self.innerDockWidget.setLayout(self.outerTabWidLay)
+
+        innerDockWidget = QWidget()
+
+        outerTabWidLay = QVBoxLayout()
+        outerTabWidLay.addWidget(tabWidget)
+        innerDockWidget.setLayout(outerTabWidLay)
 
         # dockWidget
-        self.dockWidget = QDockWidget("Dock")
-        self.dockWidget.setFeatures(QDockWidget.DockWidgetFeature.NoDockWidgetFeatures)
-        self.dockWidget.setWidget(self.innerDockWidget)
-        # self.dockWidget.setStyleSheet("border-left: 1px solid grey; border-right: 1px solid grey;")
+        dockWidget = QDockWidget("Dock")
+        dockWidget.setFeatures(QDockWidget.DockWidgetFeature.NoDockWidgetFeatures)
+        dockWidget.setWidget(innerDockWidget)
 
 
         # information labels 
@@ -437,58 +436,58 @@ class MainWindow(QMainWindow):
         self.lblTransmission = QLabel('Transmission: Manual')
         
 
-        self.colLay0 = QVBoxLayout()
-        self.colLay1 = QVBoxLayout()
-        self.colLay2 = QVBoxLayout()
-        self.colLay3 = QVBoxLayout()
+        colLay0 = QVBoxLayout()
+        colLay1 = QVBoxLayout()
+        colLay2 = QVBoxLayout()
+        colLay3 = QVBoxLayout()
 
         # 1st column
-        self.colLay0.addWidget(self.lblMake)
-        self.colLay0.addWidget(self.lblModel)
-        self.colLay0.addWidget(self.lblBody)
+        colLay0.addWidget(self.lblMake)
+        colLay0.addWidget(self.lblModel)
+        colLay0.addWidget(self.lblBody)
 
         # 2nd column
-        self.colLay1.addWidget(self.lblState)
-        self.colLay1.addWidget(self.lblColor)
-        self.colLay1.addWidget(self.lblInterior)
+        colLay1.addWidget(self.lblState)
+        colLay1.addWidget(self.lblColor)
+        colLay1.addWidget(self.lblInterior)
 
         # 3rd column
-        self.colLay2.addWidget(self.lblOdometer)
-        self.colLay2.addWidget(self.lblYear)
-        self.colLay2.addWidget(self.lblCondition)
+        colLay2.addWidget(self.lblOdometer)
+        colLay2.addWidget(self.lblYear)
+        colLay2.addWidget(self.lblCondition)
 
         
         # predict push-button
-        self.btn = QPushButton("Predict")
-        self.btn.setMinimumHeight(int(self.btn.height() / 10))
-        self.btn.clicked.connect(self.showPrediction)
+        btn = QPushButton("Predict")
+        btn.setMinimumHeight(int(btn.height() / 10))
+        btn.clicked.connect(self.showPrediction)
         
         # 4th column
-        self.colLay3.addSpacing(3)
-        self.colLay3.addWidget(self.lblTransmission)
-        self.colLay3.addWidget(QWidget())
-        self.colLay3.addWidget(self.btn)
+        colLay3.addSpacing(3)
+        colLay3.addWidget(self.lblTransmission)
+        colLay3.addWidget(QWidget())
+        colLay3.addWidget(btn)
         
 
-        self.outerLblLay = QHBoxLayout()
-        self.outerLblLay.addLayout(self.colLay0)
-        self.outerLblLay.addLayout(self.colLay1)
-        self.outerLblLay.addLayout(self.colLay2)
-        self.outerLblLay.addLayout(self.colLay3)
+        outerLblLay = QHBoxLayout()
+        outerLblLay.addLayout(colLay0)
+        outerLblLay.addLayout(colLay1)
+        outerLblLay.addLayout(colLay2)
+        outerLblLay.addLayout(colLay3)
 
-        self.centWidget = QWidget()
+        centWidget = QWidget()
 
-        self.centLay = QVBoxLayout()
+        centLay = QVBoxLayout()
         self.chart = Canvas(self)
 
         self.plotPrice()
 
-        self.centLay.addWidget(self.chart, stretch= 4)
-        self.centLay.addLayout(self.outerLblLay, stretch= 1)
-        self.centWidget.setLayout(self.centLay)
+        centLay.addWidget(self.chart, stretch= 4)
+        centLay.addLayout(outerLblLay, stretch= 1)
+        centWidget.setLayout(centLay)
 
-        self.setCentralWidget(self.centWidget)
-        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.dockWidget)
+        self.setCentralWidget(centWidget)
+        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, dockWidget)
 
         # exit application action
         exitAct = QAction(QIcon('exit.png'), '&Exit', self)
@@ -558,17 +557,22 @@ class MainWindow(QMainWindow):
     def updateMake(self):
         global car, car_data
         val = self.inputMake.text().lower()
+        # if wrong input ignore it
         if val not in self.unique_manuf:
             val = None
+
         if val:
             self.inputModel.clear()
+            # find all models for specific manufacturer
             self.inputModel.addItems(np.sort(car_data.loc[car_data['make'] == val]['model'].unique()))
             self.inputModel.setEnabled(True)
             car['make'] = val
+
             if val == 'bmw':
                 self.lblMake.setText("Manufacturer: " + val.upper())
             else:
                 self.lblMake.setText("Manufacturer: " + val.capitalize())
+
             car['model'] = None
         else:
             self.inputModel.setEnabled(False)
