@@ -49,11 +49,9 @@ User can:
 # Implementation of the Project
 + For the application free data source dataset ["Used Car Auction Prices"](https://www.kaggle.com/datasets/tunguz/used-car-auction-prices) from _Kaggle_ was used.
 + The dataset is saved as _car_prices.csv_.
-+ The data analysis with at least 3 statistical metrics over the input data was shown in _car_kaggle_sol.ipynb_.
++ The data analysis using different statistical metrics over the input data is shown in _car_kaggle_sol.ipynb_.
 + After running the project the user will see a short data description (created with _Pandas_) in the _Terminal_. Moreover, there is a possibility to have a look at histograms in the application.
-+ More than 3 input widgets were used (QLabel, QLineEdit, QSpinBox, QCheckBox etc.)
-+ The data was trained with the RandomForestRegressor algorithm in _data.py_.
++ The data was trained with the RandomForestRegressor algorithm in _data.py_ with 94% of accuracy.
 + The model is saved in file with a _joblib_ module.
 + MatplotLib was used for data visualization.
 + Application reacts to the change of widgets value and responds with prediction and plot.
-+ Data upload with a button was not added as it would slow down the work of the app.
