@@ -2,6 +2,10 @@
 Data-based decision system created with PyQt6 for price prediction of used cars.
 For more detailed data description look at the project's [Wiki](https://github.com/Tornadosky/Cars-price-prediction/wiki).
 
+<img src="https://user-images.githubusercontent.com/109428348/231141883-69a9aef6-3358-4779-a329-b26c0c2002bf.jpg" width="500" height="312" />
+<img src="https://user-images.githubusercontent.com/109428348/231141887-818f387d-7fce-41b8-aebb-2af4e747b544.jpg" width="500" height="312" />
+<img src="https://user-images.githubusercontent.com/109428348/231142873-c1b21de5-89e4-4bd1-b14e-691e1afbe8c4.jpg" width="500" height="312" />
+
 # Installation
 1. Clone the project
     ```
